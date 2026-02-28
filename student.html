@@ -91,7 +91,11 @@
   .pb { height: 7px; border-radius: 4px; background: #e5e7eb; overflow: hidden; }
   .pf { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
 
-  /* 필터 탭 */
+  /* 빠른선택 버튼 */
+  .qs-btn { padding:3px 9px; border:1px solid #ddd6fe; border-radius:20px; background:#fff; color:#6d28d9; font-size:11px; font-weight:600; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:background 0.15s; }
+  .qs-btn:hover { background:#ede9fe; }
+
+  /* 판정 필터 탭 */
   .ftab { padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; background: transparent; color: #64748b; font-family: 'Noto Sans KR', sans-serif; }
   .ftab.active { background: var(--primary); color: #fff; }
 
@@ -249,12 +253,6 @@
             style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none"
             oninput="save()">
         </div>
-        <div>
-          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">목표 전공 (선택)</label>
-          <input type="text" id="inp-target" placeholder="예: 컴퓨터공학, 의대 등"
-            style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none"
-            oninput="onTargetChange()">
-        </div>
         <div style="background:#f5f3ff;border-radius:12px;padding:14px;text-align:center">
           <div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:2px">📊 내신 평균 (입력 과목 기준)</div>
           <div id="live-avg" style="font-size:28px;font-weight:800;color:#4c1d95;font-family:'Space Mono',monospace">-</div>
@@ -270,7 +268,7 @@
     <!-- ══ STEP 2: 시뮬레이터 ══ -->
     <button class="bs" id="btn-toggle-sim" onclick="toggleSim()" style="width:100%;margin-bottom:14px">🎯 성적 시뮬레이터 열기</button>
     <div class="card fi" id="sec-sim" style="margin-bottom:18px;display:none">
-      <div class="ct" style="cursor:pointer" onclick="toggleSim()">🎯 STEP 2 — 성적 향상 시뮬레이터</div>
+      <div class="ct">🎯 STEP 2 — 성적 향상 시뮬레이터</div>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;line-height:1.6">
         💡 <strong>등급을 입력하지 않은 과목</strong>은 슬라이더로 조정할 수 있습니다.
         이미 입력한 과목은 고정(비활성)되며, 수정은 STEP 1에서 하세요.
@@ -303,18 +301,98 @@
 
       <!-- 대학 예측 -->
       <div class="card fi" id="sec-univ" style="margin-bottom:18px">
-        <div class="ct" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div class="ct">
           <span>🏫 대학 합격 예측</span>
+        </div>
+
+        <!-- ① 희망 학과 검색 -->
+        <div style="background:linear-gradient(135deg,#f5f3ff,#eff6ff);border:1.5px solid #ddd6fe;border-radius:12px;padding:16px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:#6d28d9;margin-bottom:8px">🎯 희망 학과 입력 — 관련 대학·학과만 필터링</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div style="position:relative;flex:1;min-width:200px">
+              <input type="text" id="wish-dept" placeholder="예: 컴퓨터공학, 의대, 경영, 심리학…"
+                style="width:100%;border:1.5px solid #a78bfa;border-radius:9px;padding:9px 12px;font-size:13px;
+                       font-family:'Noto Sans KR',sans-serif;outline:none;background:#fff;transition:border-color 0.2s"
+                oninput="onWishInput(this.value)" onfocus="this.style.borderColor='#6d28d9'" onblur="this.style.borderColor='#a78bfa'">
+              <!-- 자동완성 드롭다운 -->
+              <div id="wish-dropdown" style="
+                position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
+                background:#fff;border:1.5px solid #ddd6fe;border-radius:10px;
+                box-shadow:0 8px 24px rgba(109,40,217,0.15);
+                max-height:200px;overflow-y:auto;display:none;
+              "></div>
+            </div>
+            <button class="bp" onclick="applyWishFilter()" style="padding:9px 18px;font-size:13px;white-space:nowrap">
+              🔍 검색
+            </button>
+            <button onclick="clearWishFilter()" style="
+              padding:9px 14px;border:1.5px solid #ddd6fe;border-radius:9px;
+              background:#fff;color:#6d28d9;font-size:12px;font-weight:600;cursor:pointer;
+              font-family:'Noto Sans KR',sans-serif;white-space:nowrap
+            ">전체 보기</button>
+          </div>
+          <!-- 선택된 희망 태그들 -->
+          <div id="wish-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
+          <!-- 추천 키워드 -->
+          <div style="margin-top:8px;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:10px;color:#94a3b8;font-weight:600">빠른선택:</span>
+            <button class="qs-btn" onclick="quickSelect('의학·의대')">의학·의대</button>
+            <button class="qs-btn" onclick="quickSelect('약학')">약학</button>
+            <button class="qs-btn" onclick="quickSelect('컴퓨터·AI')">컴퓨터·AI</button>
+            <button class="qs-btn" onclick="quickSelect('경영')">경영</button>
+            <button class="qs-btn" onclick="quickSelect('법학')">법학</button>
+            <button class="qs-btn" onclick="quickSelect('간호')">간호</button>
+            <button class="qs-btn" onclick="quickSelect('교육·사범')">교육·사범</button>
+            <button class="qs-btn" onclick="quickSelect('디자인·미술')">디자인·미술</button>
+            <button class="qs-btn" onclick="quickSelect('심리학')">심리학</button>
+            <button class="qs-btn" onclick="quickSelect('기계공학')">기계공학</button>
+            <button class="qs-btn" onclick="quickSelect('전기·전자')">전기·전자</button>
+            <button class="qs-btn" onclick="quickSelect('영어영문')">영어영문</button>
+          </div>
+        </div>
+
+        <!-- ② 직접 대학/학과 추가 -->
+        <details style="margin-bottom:14px">
+          <summary style="font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;padding:8px 12px;
+            background:#f8faff;border:1px solid var(--border);border-radius:9px;list-style:none;
+            display:flex;align-items:center;gap:6px">
+            ➕ 직접 대학·학과 추가하기 <span style="font-weight:400;color:#94a3b8">(DB에 없는 대학·학과)</span>
+          </summary>
+          <div style="padding:14px;border:1px solid var(--border);border-radius:0 0 9px 9px;border-top:none;background:#fff">
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">직접 입력한 대학과 학과는 목록에 추가됩니다. 컷 등급은 근처 학교 기준으로 추정해 넣어주세요.</div>
+            <div id="custom-rows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+            <button onclick="addCustomRow()" style="
+              width:100%;padding:8px;border:1.5px dashed #ddd6fe;border-radius:8px;
+              background:#faf5ff;color:#6d28d9;font-size:12px;font-weight:700;cursor:pointer;
+              font-family:'Noto Sans KR',sans-serif;transition:all 0.2s
+            " onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='#faf5ff'">
+              + 행 추가
+            </button>
+            <button onclick="applyCustomRows()" class="bp" style="width:100%;margin-top:8px;padding:9px;font-size:13px">
+              ✅ 직접 추가한 항목 적용하기
+            </button>
+          </div>
+        </details>
+
+        <!-- ③ 상태 표시 및 필터 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          <div style="font-size:12px;color:var(--muted)">
+            내신 <strong id="avg-disp">-</strong>등급 기준 ·
+            <span id="univ-count-msg" style="color:#6d28d9;font-weight:700"></span>
+          </div>
           <div style="display:flex;gap:5px;flex-wrap:wrap" id="univ-legend"></div>
         </div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">전체 내신 평균 <strong id="avg-disp">-</strong>등급 기준 예측</div>
+
+        <!-- 판정 필터 탭 -->
         <div style="display:flex;gap:4px;background:#f5f3ff;padding:3px;border-radius:9px;margin-bottom:14px;flex-wrap:wrap">
-          <button class="ftab active" onclick="filterU('all',this)">전체</button>
-          <button class="ftab" onclick="filterU('safe',this)">🟢 안정</button>
-          <button class="ftab" onclick="filterU('ok',this)">🔵 적정</button>
-          <button class="ftab" onclick="filterU('try',this)">🟡 소신</button>
-          <button class="ftab" onclick="filterU('hard',this)">🔴 상향</button>
+          <button class="ftab active" id="ftab-all" onclick="filterU('all',this)">전체</button>
+          <button class="ftab" id="ftab-safe" onclick="filterU('safe',this)">🟢 안정</button>
+          <button class="ftab" id="ftab-ok" onclick="filterU('ok',this)">🔵 적정</button>
+          <button class="ftab" id="ftab-try" onclick="filterU('try',this)">🟡 소신</button>
+          <button class="ftab" id="ftab-hard" onclick="filterU('hard',this)">🔴 상향</button>
         </div>
+
+        <!-- 그리드 -->
         <div id="univ-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px"></div>
         <div id="univ-empty" style="display:none;text-align:center;padding:32px;color:#94a3b8">
           <div style="font-size:36px;margin-bottom:8px">🔍</div>
@@ -390,7 +468,8 @@ const SUBJ_DEF = {
   ],
 };
 
-/** 대학별·학과별 합격 컷 데이터 (확장판)
+/**
+ * 대학별·학과별 합격 컷 데이터 (확장판)
  *
  * 구조: { univ, dept, cut, category[], custom }
  * - univ     : 대학교명
@@ -499,16 +578,441 @@ const UNIV_DB = [
   { univ:'연세대학교', dept:'지구시스템과학과',  cut:1.9, category:['지구과학','환경'] },
   { univ:'연세대학교', dept:'천문우주학과',      cut:1.9, category:['천문학','물리학'] },
 
-  // additional representative entries
+  // ── 고려대학교 ──────────────────────────────────────────
   { univ:'고려대학교', dept:'의예과',            cut:1.3, category:['의학','의예'] },
+  { univ:'고려대학교', dept:'약학과',            cut:1.5, category:['약학'] },
+  { univ:'고려대학교', dept:'간호학과',          cut:1.6, category:['간호'] },
+  { univ:'고려대학교', dept:'컴퓨터학과',        cut:1.5, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'고려대학교', dept:'전기전자공학부',    cut:1.6, category:['전기','전자'] },
+  { univ:'고려대학교', dept:'기계공학부',        cut:1.7, category:['기계'] },
+  { univ:'고려대학교', dept:'화공생명공학과',    cut:1.7, category:['화공','생명과학'] },
+  { univ:'고려대학교', dept:'경영학과',          cut:1.6, category:['경영'] },
+  { univ:'고려대학교', dept:'경제학과',          cut:1.7, category:['경제'] },
+  { univ:'고려대학교', dept:'법학과',            cut:1.7, category:['법학'] },
+  { univ:'고려대학교', dept:'행정학과',          cut:1.8, category:['행정'] },
+  { univ:'고려대학교', dept:'정치외교학과',      cut:1.8, category:['정치'] },
+  { univ:'고려대학교', dept:'언론학부',          cut:1.8, category:['신문방송','미디어'] },
+  { univ:'고려대학교', dept:'국어국문학과',      cut:1.9, category:['국어국문'] },
+  { univ:'고려대학교', dept:'영어영문학과',      cut:1.9, category:['영어영문'] },
+  { univ:'고려대학교', dept:'사학과',            cut:1.9, category:['사학'] },
+  { univ:'고려대학교', dept:'철학과',            cut:1.9, category:['철학'] },
+  { univ:'고려대학교', dept:'심리학부',          cut:1.7, category:['심리학'] },
+  { univ:'고려대학교', dept:'사회학과',          cut:1.9, category:['사회학'] },
+  { univ:'고려대학교', dept:'수학과',            cut:1.7, category:['수학'] },
+  { univ:'고려대학교', dept:'물리학과',          cut:1.8, category:['물리학'] },
+  { univ:'고려대학교', dept:'화학과',            cut:1.8, category:['화학'] },
+  { univ:'고려대학교', dept:'생명과학부',        cut:1.7, category:['생물학','생명과학'] },
+  { univ:'고려대학교', dept:'환경생태공학부',    cut:1.9, category:['환경','생태'] },
+  { univ:'고려대학교', dept:'건축사회환경공학부',cut:1.8, category:['건축','토목','환경'] },
+  { univ:'고려대학교', dept:'신소재공학부',      cut:1.8, category:['신소재'] },
+  { univ:'고려대학교', dept:'산업경영공학부',    cut:1.7, category:['산업공학','경영'] },
+  { univ:'고려대학교', dept:'통계학과',          cut:1.8, category:['통계학','데이터'] },
+  { univ:'고려대학교', dept:'식품자원경제학과',  cut:2.0, category:['식품','경제','농학'] },
+  { univ:'고려대학교', dept:'교육학과',          cut:1.9, category:['교육학','사범'] },
+  { univ:'고려대학교', dept:'지리교육과',        cut:2.0, category:['지리','교육학','사범'] },
+
+  // ── 서강대학교 ──────────────────────────────────────────
   { univ:'서강대학교', dept:'컴퓨터공학과',      cut:1.8, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'서강대학교', dept:'전자공학과',        cut:1.9, category:['전기','전자'] },
+  { univ:'서강대학교', dept:'기계공학과',        cut:2.0, category:['기계'] },
+  { univ:'서강대학교', dept:'화공생명공학과',    cut:2.0, category:['화공','생명과학'] },
+  { univ:'서강대학교', dept:'경영학부',          cut:1.9, category:['경영'] },
+  { univ:'서강대학교', dept:'경제학부',          cut:2.0, category:['경제'] },
+  { univ:'서강대학교', dept:'법학과',            cut:2.1, category:['법학'] },
+  { univ:'서강대학교', dept:'사회학과',          cut:2.1, category:['사회학'] },
+  { univ:'서강대학교', dept:'국어국문학과',      cut:2.2, category:['국어국문'] },
+  { univ:'서강대학교', dept:'영어영문학과',      cut:2.2, category:['영어영문'] },
+  { univ:'서강대학교', dept:'신문방송학과',      cut:2.1, category:['신문방송','미디어'] },
+  { univ:'서강대학교', dept:'수학과',            cut:2.0, category:['수학'] },
+  { univ:'서강대학교', dept:'물리학과',          cut:2.0, category:['물리학'] },
+  { univ:'서강대학교', dept:'화학과',            cut:2.1, category:['화학'] },
+  { univ:'서강대학교', dept:'생명과학과',        cut:2.1, category:['생물학','생명과학'] },
+  { univ:'서강대학교', dept:'통계학과',          cut:2.0, category:['통계학','데이터'] },
+
+  // ── 성균관대학교 ──────────────────────────────────────────
+  { univ:'성균관대학교', dept:'의예과',          cut:1.3, category:['의학','의예'] },
   { univ:'성균관대학교', dept:'약학과',          cut:1.6, category:['약학'] },
-  { univ:'한양대학교', dept:'공학계열(전체)',    cut:1.9, category:['기계','전기','화공','신소재'] },
+  { univ:'성균관대학교', dept:'반도체시스템공학',cut:1.7, category:['전기','전자','신소재'] },
+  { univ:'성균관대학교', dept:'소프트웨어학과',  cut:1.8, category:['컴퓨터','소프트웨어','AI','데이터'] },
+  { univ:'성균관대학교', dept:'전자전기공학부',  cut:1.8, category:['전기','전자'] },
+  { univ:'성균관대학교', dept:'기계공학부',      cut:1.9, category:['기계'] },
+  { univ:'성균관대학교', dept:'화학공학/고분자',  cut:1.9, category:['화공','신소재'] },
+  { univ:'성균관대학교', dept:'경영학과',        cut:1.8, category:['경영'] },
+  { univ:'성균관대학교', dept:'경제학과',        cut:1.9, category:['경제'] },
+  { univ:'성균관대학교', dept:'법학과',          cut:2.0, category:['법학'] },
+  { univ:'성균관대학교', dept:'행정학과',        cut:2.0, category:['행정'] },
+  { univ:'성균관대학교', dept:'사학과',          cut:2.1, category:['사학'] },
+  { univ:'성균관대학교', dept:'철학과',          cut:2.1, category:['철학'] },
+  { univ:'성균관대학교', dept:'국어국문학과',    cut:2.2, category:['국어국문'] },
+  { univ:'성균관대학교', dept:'영어영문학과',    cut:2.2, category:['영어영문'] },
+  { univ:'성균관대학교', dept:'수학과',          cut:1.9, category:['수학'] },
+  { univ:'성균관대학교', dept:'물리학과',        cut:2.0, category:['물리학'] },
+  { univ:'성균관대학교', dept:'화학과',          cut:2.0, category:['화학'] },
+  { univ:'성균관대학교', dept:'생명과학과',      cut:2.0, category:['생물학','생명과학'] },
+  { univ:'성균관대학교', dept:'통계학과',        cut:1.9, category:['통계학','데이터'] },
+  { univ:'성균관대학교', dept:'건설환경공학부',  cut:2.1, category:['토목','환경','건축'] },
+  { univ:'성균관대학교', dept:'건축학과',        cut:2.0, category:['건축'] },
+  { univ:'성균관대학교', dept:'식품생명공학과',  cut:2.1, category:['식품','생명과학'] },
+
+  // ── 한양대학교 ──────────────────────────────────────────
+  { univ:'한양대학교', dept:'의예과',            cut:1.4, category:['의학','의예'] },
+  { univ:'한양대학교', dept:'간호학과',          cut:1.8, category:['간호'] },
+  { univ:'한양대학교', dept:'컴퓨터소프트웨어학부', cut:1.8, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'한양대학교', dept:'전기생체공학부',    cut:1.9, category:['전기','전자'] },
+  { univ:'한양대학교', dept:'기계공학부',        cut:1.9, category:['기계'] },
+  { univ:'한양대학교', dept:'화학공학과',        cut:2.0, category:['화공'] },
+  { univ:'한양대학교', dept:'건축학부',          cut:2.0, category:['건축'] },
+  { univ:'한양대학교', dept:'경영학부',          cut:1.9, category:['경영'] },
+  { univ:'한양대학교', dept:'경제금융학부',      cut:2.0, category:['경제','금융'] },
+  { univ:'한양대학교', dept:'법학과',            cut:2.1, category:['법학'] },
+  { univ:'한양대학교', dept:'행정학과',          cut:2.1, category:['행정'] },
+  { univ:'한양대학교', dept:'정치외교학과',      cut:2.1, category:['정치'] },
+  { univ:'한양대학교', dept:'사회학과',          cut:2.2, category:['사회학'] },
+  { univ:'한양대학교', dept:'국어국문학과',      cut:2.3, category:['국어국문'] },
+  { univ:'한양대학교', dept:'영어영문학과',      cut:2.3, category:['영어영문'] },
+  { univ:'한양대학교', dept:'미디어커뮤니케이션학과', cut:2.2, category:['신문방송','미디어','광고홍보'] },
+  { univ:'한양대학교', dept:'수학과',            cut:2.0, category:['수학'] },
+  { univ:'한양대학교', dept:'물리학과',          cut:2.1, category:['물리학'] },
+  { univ:'한양대학교', dept:'화학과',            cut:2.1, category:['화학'] },
+  { univ:'한양대학교', dept:'생명과학과',        cut:2.1, category:['생물학','생명과학'] },
+  { univ:'한양대학교', dept:'신소재공학부',      cut:2.0, category:['신소재'] },
+  { univ:'한양대학교', dept:'산업공학과',        cut:2.0, category:['산업공학'] },
+  { univ:'한양대학교', dept:'융합전자공학부',    cut:1.9, category:['전자','정보통신'] },
+  { univ:'한양대학교', dept:'도시공학과',        cut:2.2, category:['도시계획'] },
+  { univ:'한양대학교', dept:'교육학과',          cut:2.2, category:['교육학','사범'] },
+  { univ:'한양대학교', dept:'심리뇌과학과',      cut:2.0, category:['심리학'] },
+  { univ:'한양대학교', dept:'스포츠산업학과',    cut:2.5, category:['스포츠','체육'] },
+
+  // ── 중앙대학교 ──────────────────────────────────────────
+  { univ:'중앙대학교', dept:'의학부',            cut:1.5, category:['의학','의예'] },
+  { univ:'중앙대학교', dept:'약학부',            cut:1.8, category:['약학'] },
+  { univ:'중앙대학교', dept:'간호학과',          cut:2.0, category:['간호'] },
+  { univ:'중앙대학교', dept:'소프트웨어학부',    cut:2.0, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'중앙대학교', dept:'전자전기공학부',    cut:2.1, category:['전기','전자'] },
+  { univ:'중앙대학교', dept:'기계공학부',        cut:2.1, category:['기계'] },
+  { univ:'중앙대학교', dept:'화학공학과',        cut:2.2, category:['화공'] },
+  { univ:'중앙대학교', dept:'건축학과',          cut:2.2, category:['건축'] },
   { univ:'중앙대학교', dept:'경영학부',          cut:2.1, category:['경영'] },
-  { univ:'경희대학교', dept:'인문계열(전체)',    cut:2.6, category:['인문'] },
-  { univ:'한국외국어대학교', dept:'어문계열',      cut:2.4, category:['중어','일어','영어','불어'] },
-  { univ:'서울시립대학교', dept:'공학계열',        cut:2.4, category:['전기','전자','기계'] },
-  // 더 많은 항목은 필요에 따라 추가하세요
+  { univ:'중앙대학교', dept:'경제학부',          cut:2.2, category:['경제'] },
+  { univ:'중앙대학교', dept:'법학과',            cut:2.2, category:['법학'] },
+  { univ:'중앙대학교', dept:'행정학과',          cut:2.3, category:['행정'] },
+  { univ:'중앙대학교', dept:'정치국제학과',      cut:2.3, category:['정치','국제'] },
+  { univ:'중앙대학교', dept:'사회학과',          cut:2.3, category:['사회학'] },
+  { univ:'중앙대학교', dept:'심리학과',          cut:2.2, category:['심리학'] },
+  { univ:'중앙대학교', dept:'광고홍보학과',      cut:2.2, category:['광고홍보','미디어'] },
+  { univ:'중앙대학교', dept:'신문방송학과',      cut:2.2, category:['신문방송','미디어'] },
+  { univ:'중앙대학교', dept:'문화콘텐츠학과',    cut:2.3, category:['미디어','광고홍보','미술'] },
+  { univ:'중앙대학교', dept:'국어국문학과',      cut:2.4, category:['국어국문'] },
+  { univ:'중앙대학교', dept:'영어영문학과',      cut:2.4, category:['영어영문'] },
+  { univ:'중앙대학교', dept:'사학과',            cut:2.5, category:['사학'] },
+  { univ:'중앙대학교', dept:'교육학과',          cut:2.3, category:['교육학','사범'] },
+  { univ:'중앙대학교', dept:'수학과',            cut:2.2, category:['수학'] },
+  { univ:'중앙대학교', dept:'물리학과',          cut:2.3, category:['물리학'] },
+  { univ:'중앙대학교', dept:'화학과',            cut:2.3, category:['화학'] },
+  { univ:'중앙대학교', dept:'생명과학과',        cut:2.2, category:['생물학','생명과학'] },
+  { univ:'중앙대학교', dept:'통계학과',          cut:2.2, category:['통계학','데이터'] },
+  { univ:'중앙대학교', dept:'연극영화학과',      cut:2.5, category:['연극영화','예술'] },
+  { univ:'중앙대학교', dept:'스포츠과학부',      cut:2.5, category:['스포츠','체육'] },
+
+  // ── 경희대학교 ──────────────────────────────────────────
+  { univ:'경희대학교', dept:'의예과',            cut:1.5, category:['의학','의예'] },
+  { univ:'경희대학교', dept:'치의예과',          cut:1.6, category:['치의학','치의예'] },
+  { univ:'경희대학교', dept:'한의예과',          cut:1.6, category:['한의학','한의예'] },
+  { univ:'경희대학교', dept:'약학과',            cut:1.9, category:['약학'] },
+  { univ:'경희대학교', dept:'간호학과',          cut:2.1, category:['간호'] },
+  { univ:'경희대학교', dept:'컴퓨터공학과',      cut:2.2, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'경희대학교', dept:'전자정보대학',      cut:2.3, category:['전기','전자','정보통신'] },
+  { univ:'경희대학교', dept:'기계공학과',        cut:2.3, category:['기계'] },
+  { univ:'경희대학교', dept:'화학공학과',        cut:2.4, category:['화공'] },
+  { univ:'경희대학교', dept:'경영학과',          cut:2.3, category:['경영'] },
+  { univ:'경희대학교', dept:'경제학과',          cut:2.4, category:['경제'] },
+  { univ:'경희대학교', dept:'법학과',            cut:2.4, category:['법학'] },
+  { univ:'경희대학교', dept:'행정학과',          cut:2.5, category:['행정'] },
+  { univ:'경희대학교', dept:'관광학부',          cut:2.5, category:['관광','경영'] },
+  { univ:'경희대학교', dept:'국어국문학과',      cut:2.6, category:['국어국문'] },
+  { univ:'경희대학교', dept:'영어영문학과',      cut:2.6, category:['영어영문'] },
+  { univ:'경희대학교', dept:'사학과',            cut:2.7, category:['사학'] },
+  { univ:'경희대학교', dept:'식품영양학과',      cut:2.5, category:['식품','영양'] },
+  { univ:'경희대학교', dept:'체육학과',          cut:2.6, category:['체육','스포츠'] },
+  { univ:'경희대학교', dept:'수학과',            cut:2.4, category:['수학'] },
+  { univ:'경희대학교', dept:'물리학과',          cut:2.5, category:['물리학'] },
+  { univ:'경희대학교', dept:'화학과',            cut:2.5, category:['화학'] },
+  { univ:'경희대학교', dept:'생물학과',          cut:2.4, category:['생물학','생명과학'] },
+
+  // ── 이화여자대학교 ──────────────────────────────────────────
+  { univ:'이화여자대학교', dept:'의예과',        cut:1.4, category:['의학','의예'] },
+  { univ:'이화여자대학교', dept:'약학과',        cut:1.7, category:['약학'] },
+  { univ:'이화여자대학교', dept:'간호과학과',    cut:1.9, category:['간호'] },
+  { univ:'이화여자대학교', dept:'컴퓨터공학과',  cut:2.0, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'이화여자대학교', dept:'전자전기공학과',cut:2.1, category:['전기','전자'] },
+  { univ:'이화여자대학교', dept:'경영학부',      cut:2.0, category:['경영'] },
+  { univ:'이화여자대학교', dept:'경제학과',      cut:2.1, category:['경제'] },
+  { univ:'이화여자대학교', dept:'법학과',        cut:2.2, category:['법학'] },
+  { univ:'이화여자대학교', dept:'사범대학교육학과',cut:2.2, category:['교육학','사범'] },
+  { univ:'이화여자대학교', dept:'초등교육학과',  cut:2.0, category:['초등교육','사범'] },
+  { univ:'이화여자대학교', dept:'유아교육학과',  cut:2.2, category:['유아교육','아동','사범'] },
+  { univ:'이화여자대학교', dept:'특수교육과',    cut:2.3, category:['특수교육','사범'] },
+  { univ:'이화여자대학교', dept:'국어국문학과',  cut:2.3, category:['국어국문'] },
+  { univ:'이화여자대학교', dept:'영어영문학과',  cut:2.3, category:['영어영문'] },
+  { univ:'이화여자대학교', dept:'사학과',        cut:2.4, category:['사학'] },
+  { univ:'이화여자대학교', dept:'심리학과',      cut:2.1, category:['심리학'] },
+  { univ:'이화여자대학교', dept:'사회학과',      cut:2.3, category:['사회학'] },
+  { univ:'이화여자대학교', dept:'사회복지학과',  cut:2.3, category:['사회복지'] },
+  { univ:'이화여자대학교', dept:'의류산업학과',  cut:2.3, category:['의류','패션'] },
+  { univ:'이화여자대학교', dept:'식품영양학과',  cut:2.2, category:['식품','영양'] },
+  { univ:'이화여자대학교', dept:'체육과학과',    cut:2.5, category:['체육','스포츠'] },
+  { univ:'이화여자대학교', dept:'음악학부',      cut:2.5, category:['음악'] },
+  { univ:'이화여자대학교', dept:'미술학부',      cut:2.5, category:['미술','디자인'] },
+  { univ:'이화여자대학교', dept:'커뮤니케이션미디어학부',cut:2.2, category:['신문방송','미디어','광고홍보'] },
+  { univ:'이화여자대학교', dept:'수학과',        cut:2.1, category:['수학'] },
+  { univ:'이화여자대학교', dept:'물리학과',      cut:2.2, category:['물리학'] },
+  { univ:'이화여자대학교', dept:'화학/나노과학과',cut:2.2, category:['화학','신소재'] },
+  { univ:'이화여자대학교', dept:'생명과학과',    cut:2.1, category:['생물학','생명과학'] },
+
+  // ── 숙명여자대학교 ──────────────────────────────────────────
+  { univ:'숙명여자대학교', dept:'약학부',        cut:2.0, category:['약학'] },
+  { univ:'숙명여자대학교', dept:'간호학과',      cut:2.3, category:['간호'] },
+  { univ:'숙명여자대학교', dept:'IT공학과',      cut:2.5, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'숙명여자대학교', dept:'경영학부',      cut:2.4, category:['경영'] },
+  { univ:'숙명여자대학교', dept:'경제학부',      cut:2.5, category:['경제'] },
+  { univ:'숙명여자대학교', dept:'법학부',        cut:2.6, category:['법학'] },
+  { univ:'숙명여자대학교', dept:'사회심리학부',  cut:2.5, category:['사회학','심리학'] },
+  { univ:'숙명여자대학교', dept:'아동복지학부',  cut:2.5, category:['아동','사회복지'] },
+  { univ:'숙명여자대학교', dept:'교육학부',      cut:2.5, category:['교육학','사범'] },
+  { univ:'숙명여자대학교', dept:'초등교육학과',  cut:2.3, category:['초등교육','사범'] },
+  { univ:'숙명여자대학교', dept:'국어국문학과',  cut:2.7, category:['국어국문'] },
+  { univ:'숙명여자대학교', dept:'영어영문학과',  cut:2.7, category:['영어영문'] },
+  { univ:'숙명여자대학교', dept:'의류학과',      cut:2.6, category:['의류','패션'] },
+  { univ:'숙명여자대학교', dept:'식품영양학과',  cut:2.5, category:['식품','영양'] },
+  { univ:'숙명여자대학교', dept:'음악학부',      cut:2.7, category:['음악'] },
+  { univ:'숙명여자대학교', dept:'미술학부',      cut:2.7, category:['미술','디자인'] },
+  { univ:'숙명여자대학교', dept:'통계학과',      cut:2.5, category:['통계학','데이터'] },
+  { univ:'숙명여자대학교', dept:'화학과',        cut:2.6, category:['화학'] },
+  { univ:'숙명여자대학교', dept:'생명시스템학부',cut:2.5, category:['생물학','생명과학'] },
+
+  // ── 한국외국어대학교 ──────────────────────────────────────────
+  { univ:'한국외국어대학교', dept:'영어학부',    cut:2.2, category:['영어영문'] },
+  { univ:'한국외국어대학교', dept:'국제통상학과',cut:2.1, category:['경영','무역','국제'] },
+  { univ:'한국외국어대학교', dept:'중국어과',    cut:2.3, category:['중어'] },
+  { univ:'한국외국어대학교', dept:'일본어학과',  cut:2.4, category:['일어'] },
+  { univ:'한국외국어대학교', dept:'불어과',      cut:2.5, category:['불어'] },
+  { univ:'한국외국어대학교', dept:'독일어과',    cut:2.5, category:['독어'] },
+  { univ:'한국외국어대학교', dept:'스페인어과',  cut:2.5, category:['스페인어'] },
+  { univ:'한국외국어대학교', dept:'러시아어과',  cut:2.6, category:['러시아어','국제'] },
+  { univ:'한국외국어대학교', dept:'아랍어과',    cut:2.7, category:['아랍어','국제'] },
+  { univ:'한국외국어대학교', dept:'경제학부',    cut:2.3, category:['경제'] },
+  { univ:'한국외국어대학교', dept:'법학과',      cut:2.4, category:['법학'] },
+  { univ:'한국외국어대학교', dept:'정치외교학과',cut:2.4, category:['정치','국제'] },
+  { univ:'한국외국어대학교', dept:'LD학부',      cut:2.0, category:['국제','법학','경영'] },
+  { univ:'한국외국어대학교', dept:'언론정보학부',cut:2.3, category:['신문방송','미디어'] },
+  { univ:'한국외국어대학교', dept:'디지털인문학부',cut:2.4, category:['미디어','데이터','국어국문'] },
+
+  // ── 서울시립대학교 ──────────────────────────────────────────
+  { univ:'서울시립대학교', dept:'컴퓨터과학부',  cut:2.2, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'서울시립대학교', dept:'전자전기컴퓨터공학부', cut:2.3, category:['전기','전자','컴퓨터'] },
+  { univ:'서울시립대학교', dept:'기계정보공학과', cut:2.4, category:['기계','정보통신'] },
+  { univ:'서울시립대학교', dept:'화학공학과',    cut:2.5, category:['화공'] },
+  { univ:'서울시립대학교', dept:'건축학부',      cut:2.4, category:['건축'] },
+  { univ:'서울시립대학교', dept:'토목공학과',    cut:2.5, category:['토목'] },
+  { univ:'서울시립대학교', dept:'도시공학과',    cut:2.3, category:['도시계획'] },
+  { univ:'서울시립대학교', dept:'경영학부',      cut:2.2, category:['경영'] },
+  { univ:'서울시립대학교', dept:'경제학부',      cut:2.3, category:['경제'] },
+  { univ:'서울시립대학교', dept:'법학부',        cut:2.3, category:['법학'] },
+  { univ:'서울시립대학교', dept:'행정학과',      cut:2.3, category:['행정'] },
+  { univ:'서울시립대학교', dept:'세무학과',      cut:2.4, category:['회계','경영'] },
+  { univ:'서울시립대학교', dept:'국어국문학과',  cut:2.7, category:['국어국문'] },
+  { univ:'서울시립대학교', dept:'영어영문학과',  cut:2.7, category:['영어영문'] },
+  { univ:'서울시립대학교', dept:'통계학과',      cut:2.4, category:['통계학','데이터'] },
+  { univ:'서울시립대학교', dept:'환경공학부',    cut:2.5, category:['환경'] },
+
+  // ── 건국대학교 ──────────────────────────────────────────
+  { univ:'건국대학교', dept:'수의예과',          cut:1.8, category:['수의학','수의예'] },
+  { univ:'건국대학교', dept:'의학과',            cut:1.8, category:['의학','의예'] },
+  { univ:'건국대학교', dept:'글로컬캠퍼스의예',  cut:2.5, category:['의학','의예'] },
+  { univ:'건국대학교', dept:'컴퓨터공학부',      cut:2.5, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'건국대학교', dept:'전기전자공학부',    cut:2.6, category:['전기','전자'] },
+  { univ:'건국대학교', dept:'기계항공공학부',    cut:2.6, category:['기계','항공'] },
+  { univ:'건국대학교', dept:'화학공학부',        cut:2.7, category:['화공'] },
+  { univ:'건국대학교', dept:'생명공학과',        cut:2.5, category:['생명과학','화공'] },
+  { univ:'건국대학교', dept:'경영학과',          cut:2.5, category:['경영'] },
+  { univ:'건국대학교', dept:'경제학과',          cut:2.6, category:['경제'] },
+  { univ:'건국대학교', dept:'법학과',            cut:2.7, category:['법학'] },
+  { univ:'건국대학교', dept:'부동산학과',        cut:2.6, category:['부동산','도시계획'] },
+  { univ:'건국대학교', dept:'신문방송학과',      cut:2.7, category:['신문방송','미디어'] },
+  { univ:'건국대학교', dept:'미래에너지공학과',  cut:2.8, category:['화공','신소재','환경'] },
+
+  // ── 동국대학교 ──────────────────────────────────────────
+  { univ:'동국대학교', dept:'컴퓨터정보통신공학과', cut:2.8, category:['컴퓨터','정보통신','소프트웨어'] },
+  { univ:'동국대학교', dept:'경영학과',          cut:2.8, category:['경영'] },
+  { univ:'동국대학교', dept:'경제학과',          cut:2.9, category:['경제'] },
+  { univ:'동국대학교', dept:'법학과',            cut:2.9, category:['법학'] },
+  { univ:'동국대학교', dept:'행정학과',          cut:2.9, category:['행정'] },
+  { univ:'동국대학교', dept:'영화영상학과',      cut:2.8, category:['연극영화','미디어'] },
+  { univ:'동국대학교', dept:'광고홍보학과',      cut:2.9, category:['광고홍보','미디어'] },
+  { univ:'동국대학교', dept:'국어국문학과',      cut:3.0, category:['국어국문'] },
+  { univ:'동국대학교', dept:'영어영문학과',      cut:3.0, category:['영어영문'] },
+  { univ:'동국대학교', dept:'철학과',            cut:3.1, category:['철학'] },
+  { univ:'동국대학교', dept:'사학과',            cut:3.1, category:['사학'] },
+  { univ:'동국대학교', dept:'식품생명공학과',    cut:3.0, category:['식품','생명과학'] },
+  { univ:'동국대학교', dept:'사회복지학과',      cut:2.9, category:['사회복지'] },
+
+  // ── 홍익대학교 ──────────────────────────────────────────
+  { univ:'홍익대학교', dept:'회화과',            cut:2.6, category:['미술'] },
+  { univ:'홍익대학교', dept:'시각디자인학과',    cut:2.5, category:['미술','디자인'] },
+  { univ:'홍익대학교', dept:'산업디자인학과',    cut:2.6, category:['미술','디자인'] },
+  { univ:'홍익대학교', dept:'건축학과(5년제)',   cut:2.4, category:['건축'] },
+  { univ:'홍익대학교', dept:'컴퓨터공학과',      cut:2.7, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'홍익대학교', dept:'경영학과',          cut:2.7, category:['경영'] },
+  { univ:'홍익대학교', dept:'영어영문학과',      cut:3.0, category:['영어영문'] },
+  { univ:'홍익대학교', dept:'예술학과',          cut:3.0, category:['미술','예술'] },
+  { univ:'홍익대학교', dept:'광고홍보학부',      cut:2.8, category:['광고홍보','미디어'] },
+  { univ:'홍익대학교', dept:'게임학부',          cut:2.7, category:['컴퓨터','미술','디자인'] },
+
+  // ── 국민대학교 ──────────────────────────────────────────
+  { univ:'국민대학교', dept:'소프트웨어학부',    cut:2.9, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'국민대학교', dept:'자동차공학과',      cut:2.8, category:['기계'] },
+  { univ:'국민대학교', dept:'전자공학부',        cut:3.0, category:['전기','전자'] },
+  { univ:'국민대학교', dept:'경영학부',          cut:2.9, category:['경영'] },
+  { univ:'국민대학교', dept:'법학부',            cut:3.0, category:['법학'] },
+  { univ:'국민대학교', dept:'조형대학(디자인)',  cut:2.9, category:['미술','디자인'] },
+  { univ:'국민대학교', dept:'건축학부',          cut:2.9, category:['건축'] },
+  { univ:'국민대학교', dept:'AI빅데이터학과',    cut:2.9, category:['AI','데이터','컴퓨터'] },
+
+  // ── 세종대학교 ──────────────────────────────────────────
+  { univ:'세종대학교', dept:'항공시스템공학과',  cut:3.0, category:['항공','기계'] },
+  { univ:'세종대학교', dept:'컴퓨터공학과',      cut:3.0, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'세종대학교', dept:'AI데이터사이언스학과', cut:3.0, category:['AI','데이터','컴퓨터'] },
+  { univ:'세종대학교', dept:'전자정보통신공학과',cut:3.1, category:['전기','전자','정보통신'] },
+  { univ:'세종대학교', dept:'기계공학과',        cut:3.2, category:['기계'] },
+  { univ:'세종대학교', dept:'경영학부',          cut:3.1, category:['경영'] },
+  { univ:'세종대학교', dept:'관광경영학과',      cut:3.2, category:['관광','경영'] },
+  { univ:'세종대학교', dept:'호텔외식관광경영학',cut:3.2, category:['관광','경영','식품'] },
+
+  // ── 인하대학교 ──────────────────────────────────────────
+  { univ:'인하대학교', dept:'의예과',            cut:1.7, category:['의학','의예'] },
+  { univ:'인하대학교', dept:'컴퓨터공학과',      cut:2.5, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'인하대학교', dept:'전기공학과',        cut:2.7, category:['전기','전자'] },
+  { univ:'인하대학교', dept:'기계공학과',        cut:2.6, category:['기계'] },
+  { univ:'인하대학교', dept:'항공우주공학과',    cut:2.5, category:['항공','기계'] },
+  { univ:'인하대학교', dept:'화학공학과',        cut:2.7, category:['화공'] },
+  { univ:'인하대학교', dept:'신소재공학과',      cut:2.8, category:['신소재'] },
+  { univ:'인하대학교', dept:'경영학과',          cut:2.6, category:['경영'] },
+  { univ:'인하대학교', dept:'경제학과',          cut:2.7, category:['경제'] },
+  { univ:'인하대학교', dept:'법학과',            cut:2.8, category:['법학'] },
+  { univ:'인하대학교', dept:'국어교육과',        cut:2.8, category:['국어국문','사범','교육학'] },
+  { univ:'인하대학교', dept:'영어교육과',        cut:2.8, category:['영어영문','사범','교육학'] },
+
+  // ── 아주대학교 ──────────────────────────────────────────
+  { univ:'아주대학교', dept:'의학과',            cut:1.8, category:['의학','의예'] },
+  { univ:'아주대학교', dept:'소프트웨어학과',    cut:2.6, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'아주대학교', dept:'전자공학과',        cut:2.7, category:['전기','전자'] },
+  { univ:'아주대학교', dept:'기계공학과',        cut:2.8, category:['기계'] },
+  { univ:'아주대학교', dept:'화학공학과',        cut:2.9, category:['화공'] },
+  { univ:'아주대학교', dept:'경영학과',          cut:2.7, category:['경영'] },
+  { univ:'아주대학교', dept:'경제학과',          cut:2.8, category:['경제'] },
+  { univ:'아주대학교', dept:'심리학과',          cut:2.7, category:['심리학'] },
+  { univ:'아주대학교', dept:'사회학과',          cut:2.9, category:['사회학'] },
+
+  // ── 광운대학교 ──────────────────────────────────────────
+  { univ:'광운대학교', dept:'AI·소프트웨어학부', cut:3.0, category:['AI','소프트웨어','컴퓨터','데이터'] },
+  { univ:'광운대학교', dept:'전자공학과',        cut:3.1, category:['전기','전자'] },
+  { univ:'광운대학교', dept:'정보융합학부',      cut:3.1, category:['정보통신','컴퓨터'] },
+  { univ:'광운대학교', dept:'경영학부',          cut:3.2, category:['경영'] },
+  { univ:'광운대학교', dept:'미디어커뮤니케이션학부', cut:3.2, category:['신문방송','미디어'] },
+
+  // ── 가천대학교 ──────────────────────────────────────────
+  { univ:'가천대학교', dept:'의예과',            cut:2.0, category:['의학','의예'] },
+  { univ:'가천대학교', dept:'약학과',            cut:2.3, category:['약학'] },
+  { univ:'가천대학교', dept:'간호학과',          cut:2.5, category:['간호'] },
+  { univ:'가천대학교', dept:'AI소프트웨어학부',  cut:2.8, category:['AI','소프트웨어','컴퓨터'] },
+  { univ:'가천대학교', dept:'전자공학과',        cut:3.0, category:['전기','전자'] },
+  { univ:'가천대학교', dept:'경영학부',          cut:2.9, category:['경영'] },
+  { univ:'가천대학교', dept:'경제학과',          cut:3.0, category:['경제'] },
+  { univ:'가천대학교', dept:'식품영양학과',      cut:3.1, category:['식품','영양'] },
+
+  // ── 가톨릭대학교 ──────────────────────────────────────────
+  { univ:'가톨릭대학교', dept:'의예과',          cut:1.9, category:['의학','의예'] },
+  { univ:'가톨릭대학교', dept:'약학과',          cut:2.2, category:['약학'] },
+  { univ:'가톨릭대학교', dept:'간호학과',        cut:2.4, category:['간호'] },
+  { univ:'가톨릭대학교', dept:'사회복지학과',    cut:2.9, category:['사회복지'] },
+  { univ:'가톨릭대학교', dept:'경영학부',        cut:2.9, category:['경영'] },
+  { univ:'가톨릭대학교', dept:'미디어기술콘텐츠학과', cut:3.0, category:['미디어','컴퓨터'] },
+
+  // ── 단국대학교 ──────────────────────────────────────────
+  { univ:'단국대학교', dept:'의예과',            cut:2.2, category:['의학','의예'] },
+  { univ:'단국대학교', dept:'치의예과',          cut:2.3, category:['치의학','치의예'] },
+  { univ:'단국대학교', dept:'간호학과',          cut:2.7, category:['간호'] },
+  { univ:'단국대학교', dept:'SW융합학부',        cut:2.9, category:['소프트웨어','컴퓨터','AI'] },
+  { univ:'단국대학교', dept:'전자전기공학부',    cut:3.0, category:['전기','전자'] },
+  { univ:'단국대학교', dept:'경영학과',          cut:3.0, category:['경영'] },
+  { univ:'단국대학교', dept:'법학과',            cut:3.1, category:['법학'] },
+
+  // ── 상명대학교 ──────────────────────────────────────────
+  { univ:'상명대학교', dept:'컴퓨터과학전공',    cut:3.2, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'상명대학교', dept:'경영학부',          cut:3.3, category:['경영'] },
+  { univ:'상명대학교', dept:'디지털미디어학과',  cut:3.2, category:['미디어','디자인','컴퓨터'] },
+  { univ:'상명대학교', dept:'사범학부',          cut:3.1, category:['사범','교육학'] },
+
+  // ── 덕성여자대학교 ──────────────────────────────────────────
+  { univ:'덕성여자대학교', dept:'약학과',        cut:2.5, category:['약학'] },
+  { univ:'덕성여자대학교', dept:'간호학과',      cut:3.0, category:['간호'] },
+  { univ:'덕성여자대학교', dept:'경영학부',      cut:3.2, category:['경영'] },
+  { univ:'덕성여자대학교', dept:'아동가족학과',  cut:3.2, category:['아동','사회복지'] },
+  { univ:'덕성여자대학교', dept:'문화인류학과',  cut:3.3, category:['사회학','철학'] },
+
+  // ── 삼육대학교 ──────────────────────────────────────────
+  { univ:'삼육대학교', dept:'간호학과',          cut:3.1, category:['간호'] },
+  { univ:'삼육대학교', dept:'약학과',            cut:3.0, category:['약학'] },
+  { univ:'삼육대학교', dept:'컴퓨터공학과',      cut:3.3, category:['컴퓨터','소프트웨어'] },
+
+  // ── 서울여자대학교 ──────────────────────────────────────────
+  { univ:'서울여자대학교', dept:'소프트웨어학과', cut:3.0, category:['소프트웨어','컴퓨터','AI'] },
+  { univ:'서울여자대학교', dept:'경영학과',      cut:3.2, category:['경영'] },
+  { univ:'서울여자대학교', dept:'아동학과',      cut:3.1, category:['아동','유아교육'] },
+  { univ:'서울여자대학교', dept:'미디어학부',    cut:3.1, category:['미디어','신문방송'] },
+
+  // ── 명지대학교 ──────────────────────────────────────────
+  { univ:'명지대학교', dept:'컴퓨터공학과',      cut:3.2, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'명지대학교', dept:'경영학부',          cut:3.3, category:['경영'] },
+  { univ:'명지대학교', dept:'법학과',            cut:3.3, category:['법학'] },
+  { univ:'명지대학교', dept:'교육학과',          cut:3.2, category:['교육학','사범'] },
+  { univ:'명지대학교', dept:'청소년지도학과',    cut:3.3, category:['사회복지','아동'] },
+
+  // ── 경기대학교 ──────────────────────────────────────────
+  { univ:'경기대학교', dept:'소프트웨어경영대학', cut:3.5, category:['소프트웨어','경영','컴퓨터'] },
+  { univ:'경기대학교', dept:'경영학부',          cut:3.5, category:['경영'] },
+  { univ:'경기대학교', dept:'관광이벤트학과',    cut:3.5, category:['관광','경영'] },
+
+  // ── 한국항공대학교 ──────────────────────────────────────────
+  { univ:'한국항공대학교', dept:'항공우주공학과', cut:2.5, category:['항공','기계'] },
+  { univ:'한국항공대학교', dept:'항공교통물류학부',cut:2.7, category:['항공','경영'] },
+  { univ:'한국항공대학교', dept:'소프트웨어학과', cut:2.7, category:['소프트웨어','컴퓨터','AI'] },
+  { univ:'한국항공대학교', dept:'전자정보공학부', cut:2.8, category:['전기','전자','정보통신'] },
+  { univ:'한국항공대학교', dept:'경영학부',      cut:2.9, category:['경영'] },
+
+  // ── 서울과학기술대학교 ──────────────────────────────────────────
+  { univ:'서울과학기술대학교', dept:'컴퓨터공학과', cut:2.6, category:['컴퓨터','소프트웨어','AI'] },
+  { univ:'서울과학기술대학교', dept:'전기정보공학과', cut:2.7, category:['전기','전자','정보통신'] },
+  { univ:'서울과학기술대학교', dept:'기계공학과', cut:2.8, category:['기계'] },
+  { univ:'서울과학기술대학교', dept:'화공생명공학과', cut:2.9, category:['화공','생명과학'] },
+  { univ:'서울과학기술대학교', dept:'건축학부',   cut:2.7, category:['건축'] },
+  { univ:'서울과학기술대학교', dept:'경영학부',   cut:2.7, category:['경영'] },
+  { univ:'서울과학기술대학교', dept:'산업공학과', cut:2.8, category:['산업공학'] },
+
+  // ── 한국교원대학교 ──────────────────────────────────────────
+  { univ:'한국교원대학교', dept:'초등교육과',    cut:2.0, category:['초등교육','사범'] },
+  { univ:'한국교원대학교', dept:'유아교육과',    cut:2.1, category:['유아교육','사범','아동'] },
+  { univ:'한국교원대학교', dept:'특수교육학과',  cut:2.2, category:['특수교육','사범'] },
+  { univ:'한국교원대학교', dept:'교육학과',      cut:2.1, category:['교육학','사범'] },
+  { univ:'한국교원대학교', dept:'상담심리학과',  cut:2.3, category:['심리학','상담','사범'] },
+  { univ:'한국교원대학교', dept:'국어교육과',    cut:2.2, category:['국어국문','사범'] },
+  { univ:'한국교원대학교', dept:'영어교육과',    cut:2.2, category:['영어영문','사범'] },
+  { univ:'한국교원대학교', dept:'수학교육과',    cut:2.1, category:['수학','사범'] },
+  { univ:'한국교원대학교', dept:'과학교육과',    cut:2.2, category:['물리학','화학','생물학','사범'] },
+  { univ:'한국교원대학교', dept:'사회교육과',    cut:2.3, category:['사회학','역사','사범'] },
+  { univ:'한국교원대학교', dept:'체육교육과',    cut:2.4, category:['체육','스포츠','사범'] },
+  { univ:'한국교원대학교', dept:'음악교육과',    cut:2.5, category:['음악','사범'] },
+  { univ:'한국교원대학교', dept:'미술교육과',    cut:2.5, category:['미술','사범'] },
 
   // ── 사용자 직접 추가용 빈 슬롯 (custom:true) ──────────────────────────────────────────
   { univ:'직접 추가', dept:'(대학명/학과 직접 입력)', cut:3.0, category:[], custom:true },
@@ -584,187 +1088,27 @@ const CAREER_MAP = {
   'default':{ field:'탐구·과학 계열', depts:'생명과학과, 지구과학과, 환경학과', tip:'탐구 과목 분석력을 활용할 수 있는 자연과학 계열을 추천합니다.' },
 };
 
-// ------------- 필터 & 검색 상태 -------------
-let wishCategories = [];   // 비어 있으면 전체 표시
-let customUnivList = [];   // 사용자 직접 추가 항목
-
-/**
- * 판정 계산
- */
-function getVerdict(my, cut) {
-  const d = cut - my;
-  if (d>=0.5)  return {verdict:'안정', cls:'t-safe', icon:'🟢', tag:'safe'};
-  if (d>=-0.2) return {verdict:'적정', cls:'t-ok',   icon:'🔵', tag:'ok'};
-  if (d>=-0.5) return {verdict:'소신', cls:'t-try',  icon:'🟡', tag:'try'};
-  return         {verdict:'상향', cls:'t-hard', icon:'🔴', tag:'hard'};
-}
-
-/**
- * 전체 대학 DB를 기반으로 판정·필터 가능 리스트 생성후 화면에 렌더
- */
-function renderUniv(avg) {
-  document.getElementById('avg-disp').textContent = avg.toFixed(2);
-  // apply target major filter if provided
-  if (ST.targetMajor && ST.targetMajor.trim()) {
-    const cats = textToCategories(ST.targetMajor);
-    wishCategories = [];
-    cats.forEach(c=>{ if (!wishCategories.includes(c)) wishCategories.push(c); });
-    updateWishTags();
-  }
-  const allDB = [...UNIV_DB.filter(u => !u.custom), ...customUnivList];
-  univData = allDB.map(u => ({name:u.univ||u.name, dept:u.dept, cut:u.cut, category:u.category||[], custom:u.custom||false, ...getVerdict(avg, u.cut)}));
-  renderUnivGrid(curFilter);
-}
-
-/**
- * 주어진 판정필터 & 희망카테고리로 그리드 업데이트
- */
-function renderUnivGrid(f) {
-  curFilter = f;
-  let data = univData;
-  if (wishCategories.length) {
-    data = data.filter(u => u.category && u.category.some(c => wishCategories.includes(c)));
-  }
-  if (f !== 'all') data = data.filter(u => u.tag === f);
-  data = [...data].sort((a,b)=>a.cut-b.cut);
-
-  const allForLegend = wishCategories.length
-    ? univData.filter(u => u.category && u.category.some(c => wishCategories.includes(c)))
-    : univData;
-  const cnt = {safe:0,ok:0,try:0,hard:0}; allForLegend.forEach(u=>cnt[u.tag]++);
-  document.getElementById('univ-legend').innerHTML =
-    [{tag:'safe',icon:'🟢'},{tag:'ok',icon:'🔵'},{tag:'try',icon:'🟡'},{tag:'hard',icon:'🔴'}]
-    .map(l=>`<span style="font-size:11px;color:var(--muted);font-weight:600">${l.icon} ${cnt[l.tag]}</span>`).join('');
-
-  const grid = document.getElementById('univ-grid');
-  const empty = document.getElementById('univ-empty');
-  if (data.length===0) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
-  } else {
-    empty.style.display='none';
-    grid.innerHTML = data.map(u => `
-      <div class="card ${u.cls}" style="padding:12px;border-radius:10px;transition:transform 0.15s"
-           onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
-          <div style="min-width:0">
-            <div style="font-weight:800;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.univ||u.name}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.dept}</div>
-          </div>
-          <span style="font-size:17px;flex-shrink:0;margin-left:4px">${u.icon}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.06)">
-          <span style="font-size:10px;color:var(--muted)">컷 ${u.cut}등급</span>
-          <span style="font-weight:800;font-size:12px">${u.verdict}</span>
-        </div>
-        ${u.custom ? '<div style="font-size:9px;color:#a78bfa;margin-top:3px">✏ 직접 추가</div>' : ''}
-      </div>`).join('');
-  }
-}
-
-function filterU(f, btn) {
-  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderUnivGrid(f);
-}
-
-// 검색 도우미
-function textToCategories(text) {
-  const cats = new Set();
-  const lower = text.toLowerCase().trim();
-  if (!lower) return [];
-  Object.entries(KEYWORD_MAP).forEach(([kw, cat]) => {
-    if (lower.includes(kw.toLowerCase())) cats.add(cat);
-  });
-  const allCats = new Set(UNIV_DB.flatMap(u => u.category||[]));
-  allCats.forEach(c => { if (lower.includes(c.toLowerCase())) cats.add(c); });
-  return [...cats];
-}
-
-function onWishInput(val) {
-  const dd = document.getElementById('wish-dropdown');
-  if (!val.trim()) { dd.style.display='none'; return; }
-  const cats = textToCategories(val);
-  const suggestions = new Set();
-  if (cats.length) {
-    UNIV_DB.filter(u => u.category?.some(c=>cats.includes(c)))
-      .slice(0,20).forEach(u=>suggestions.add(u.dept));
-  }
-  const lower = val.toLowerCase();
-  UNIV_DB.filter(u=>u.dept.toLowerCase().includes(lower)||u.univ.toLowerCase().includes(lower))
-    .slice(0,8).forEach(u=>suggestions.add(u.dept));
-  const list=[...suggestions].slice(0,8);
-  if (!list.length) { dd.style.display='none'; return; }
-  dd.innerHTML = list.map(s=>
-    `<div onclick="selectSuggestion('${s.replace(/'/g,"\\'")}')" style="padding:9px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f5f3ff;transition:background 0.1s" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='#fff'">${s}</div>`
-  ).join('');
-  dd.style.display='block';
-}
-
-function selectSuggestion(dept) {
-  document.getElementById('wish-dept').value = dept;
-  document.getElementById('wish-dropdown').style.display = 'none';
-  applyWishFilter();
-}
-
-function applyWishFilter() {
-  document.getElementById('wish-dropdown').style.display = 'none';
-  const val = document.getElementById('wish-dept').value.trim();
-  if (!val) return;
-  const newCats = textToCategories(val);
-  if (!newCats.length) {
-    showToast('⚠️ 인식할 수 없는 학과명입니다. 다른 키워드를 시도해보세요', 'warning');
-    return;
-  }
-  newCats.forEach(c=>{ if (!wishCategories.includes(c)) wishCategories.push(c); });
-  document.getElementById('wish-dept').value = '';
-  updateWishTags();
-  renderUnivGrid(curFilter);
-  showToast(`🎯 "${val}" 관련 학과 필터 적용됨`);
-}
-
-function quickSelect(text) {
-  document.getElementById('wish-dept').value = text;
-  applyWishFilter();
-}
-
-function updateWishTags() {
-  const container = document.getElementById('wish-tags');
-  if (!wishCategories.length) { container.innerHTML=''; return; }
-  container.innerHTML = wishCategories.map(c=>
-    `<span style="display:inline-flex;align-items:center;gap:5px;background:#ede9fe;color:#6d28d9; padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">${c}<button onclick="removeWishCat('${c}')" style="background:none;border:none;cursor:pointer;color:#a78bfa;font-size:13px;line-height:1;padding:0">×</button></span>`
-  ).join('');
-}
-
-function removeWishCat(cat) {
-  wishCategories = wishCategories.filter(c=>c!==cat);
-  updateWishTags();
-  renderUnivGrid(curFilter);
-  if (!wishCategories.length) showToast('📋 전체 대학 목록으로 돌아갑니다');
-}
-
-function clearWishFilter() {
-  wishCategories = [];
-  document.getElementById('wish-dept').value = '';
-  updateWishTags();
-  renderUnivGrid(curFilter);
-}
-
-document.addEventListener('click', e => {
-  const dd = document.getElementById('wish-dropdown');
-  if (dd && !dd.contains(e.target) && e.target.id !== 'wish-dept') dd.style.display = 'none';
-});
-
+// ═══════════════════════════════════════════════════════
+// 전역 상태
+// ═══════════════════════════════════════════════════════
 
 /**
  * 앱 상태
  * grades: { [subjectId]: { grade: number|null, name: string } }
  */
 const ST = { grades: {}, name: '', activeYr: 1, targetMajor:'', sim:{} };
+let simOpened = false;  // whether simulator panel is currently shown
+
+// 토글 버튼으로 패널 열고 닫기
+function toggleSim() {
+  simOpened = !simOpened;
+  const sec = document.getElementById('sec-sim');
+  sec.style.display = simOpened ? 'block' : 'none';
+  document.getElementById('btn-toggle-sim').textContent = simOpened ? '🎯 시뮬레이터 닫기' : '🎯 성적 시뮬레이터 열기';
+  if (simOpened) buildSimulator();
+}
 let charts = {};
 let univData = [];
-let curFilter = 'all';
-let simOpened = false;
 
 // ═══════════════════════════════════════════════════════
 // localStorage
@@ -774,7 +1118,7 @@ let simOpened = false;
 function save() {
   ST.name = (document.getElementById('inp-name')?.value || '').trim();
   ST.targetMajor = (document.getElementById('inp-target')?.value || '').trim();
-  // sim grades already stored in ST.sim via onSimGrade
+  // sim grades stored in ST.sim via onSimGrade
   try { localStorage.setItem('cp_student_v3', JSON.stringify(ST)); } catch(e) {}
 }
 
@@ -1054,11 +1398,10 @@ function buildSimulator() {
       const e = ST.grades[def.id];
       const hasG = e?.grade != null;
       const displayName = e?.name || def.label;
-      // simulation value if any
       const simVal = ST.sim[def.id] != null ? ST.sim[def.id] : '';
 
       if (hasG) {
-        // 입력된 과목 — 상태 표시 only
+        // 입력된 과목 — 입력값 고정, 시뮬 옵션만
         return `<div style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:12px;font-weight:600;color:var(--muted)">${displayName}</span>
@@ -1074,7 +1417,7 @@ function buildSimulator() {
           </select>
         </div>`;
       } else {
-        // 미입력 과목 — 등급 선택
+        // 미입력 과목 — 시뮬레이션 등급 선택
         return `<div style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:12px;font-weight:600;color:var(--text)">${displayName}</span>
@@ -1103,16 +1446,6 @@ function buildSimulator() {
 }
 
 /**
- * 슬라이더 값 변경 핸들러
- * @param {string} id    - 과목 ID
- * @param {string} val   - 새 등급 값
- * @param {string} color - 배지 색상
- */
-function onSlider(id, val, color) {
-  // deprecated; not used after select redesign
-}
-
-/**
  * 시뮬레이터 등급 선택 핸들러
  */
 function onSimGrade(id, val) {
@@ -1125,22 +1458,6 @@ function onSimGrade(id, val) {
   updateSimResult();
 }
 
-function onTargetChange() {
-  const v = (document.getElementById('inp-target').value||'').trim();
-  ST.targetMajor = v;
-  save();
-  // update wish tags so filter updates immediately
-  wishCategories = [];
-  if (v) {
-    const cats = textToCategories(v);
-    cats.forEach(c=>{ if (!wishCategories.includes(c)) wishCategories.push(c); });
-  }
-  updateWishTags();
-  if (document.getElementById('sec-univ').style.display !== 'none') {
-    renderUnivGrid(curFilter);
-  }
-}
-
 /**
  * 시뮬레이션 결과(모든 과목 합산 평균)를 계산하여 표시한다
  *
@@ -1148,9 +1465,9 @@ function onTargetChange() {
  * - 미입력 과목: 해당 슬라이더 값 사용
  */
 function updateSimResult() {
+  // if no simulation values entered, show placeholder and bail out
   const used = Object.values(ST.sim).some(v=>v!=null);
   if (!used) {
-    // no simulation values entered
     document.getElementById('sim-base').textContent = '-';
     document.getElementById('sim-result').textContent = '-';
     document.getElementById('sim-diff').textContent = '시뮬레이터에서 값을 입력하면 결과가 표시됩니다';
@@ -1219,7 +1536,18 @@ function analyzeAll() {
   renderAI(filled, avg);
   renderUniv(avg);
   renderRadar(filled);
-  if (simOpened) updateSimResult();
+
+  // 시뮬레이터는 사용자가 값을 입력했을 때만 업데이트
+  if (simOpened) {
+    const used = Object.values(ST.sim).some(v=>v!=null);
+    if (used) {
+      updateSimResult();
+    } else {
+      document.getElementById('sim-base').textContent = '-';
+      document.getElementById('sim-result').textContent = '-';
+      document.getElementById('sim-diff').textContent = '시뮬레이터에서 값을 입력하면 결과가 표시됩니다';
+    }
+  }
 
   showToast('✅ 분석 완료!');
   setTimeout(() => document.getElementById('sec-ai').scrollIntoView({ behavior:'smooth', block:'start' }), 300);
@@ -1284,9 +1612,20 @@ function renderAI(filled, avg) {
 }
 
 // ═══════════════════════════════════════════════════════
-// 대학 예측
+// 대학 예측 — 핵심 함수
 // ═══════════════════════════════════════════════════════
 
+/** 현재 희망 학과 카테고리 필터 목록 */
+let wishCategories = [];   // 비어 있으면 전체 표시
+let curFilter = 'all';
+let customUnivList = [];   // 사용자 직접 추가 항목
+
+/**
+ * 합격 판정을 계산한다
+ * @param {number} my  - 내 내신 평균
+ * @param {number} cut - 대학 컷
+ * @returns {{verdict, cls, icon, tag}}
+ */
 function getVerdict(my, cut) {
   const d = cut - my;
   if (d>=0.5)  return {verdict:'안정', cls:'t-safe', icon:'🟢', tag:'safe'};
@@ -1296,40 +1635,260 @@ function getVerdict(my, cut) {
 }
 
 /**
- * 대학 합격 예측을 렌더링한다
+ * 대학 합격 예측 전체를 렌더링한다
  * @param {number} avg - 내신 평균
  */
 function renderUniv(avg) {
   document.getElementById('avg-disp').textContent = avg.toFixed(2);
-  univData = UNIV_CUT.map(u => ({...u, ...getVerdict(avg, u.cut)}));
-  const cnt = {safe:0,ok:0,try:0,hard:0};
-  univData.forEach(u => cnt[u.tag]++);
-  document.getElementById('univ-legend').innerHTML =
-    [{tag:'safe',icon:'🟢'},{tag:'ok',icon:'🔵'},{tag:'try',icon:'🟡'},{tag:'hard',icon:'🔴'}]
-    .map(l => `<span style="font-size:11px;color:var(--muted);font-weight:600">${l.icon} ${cnt[l.tag]}</span>`).join('');
+
+  // 전체 DB(기본+사용자추가) 를 verdict로 변환
+  const allDB = [...UNIV_DB.filter(u => !u.custom), ...customUnivList];
+  univData = allDB.map(u => ({...u, name:u.univ, dept:u.dept, ...getVerdict(avg, u.cut)}));
+
   renderUnivGrid(curFilter);
 }
 
+/**
+ * 현재 wishCategories·curFilter 기준으로 대학 그리드를 렌더링한다
+ * @param {string} f - 'all'|'safe'|'ok'|'try'|'hard'
+ */
 function renderUnivGrid(f) {
-  const data = f==='all' ? univData : univData.filter(u => u.tag===f);
-  document.getElementById('univ-grid').innerHTML = data.map(u => `
-    <div class="card ${u.cls}" style="padding:12px;border-radius:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div><div style="font-weight:800;font-size:13px">${u.name}</div><div style="font-size:10px;color:var(--muted);margin-top:1px">${u.dept}</div></div>
-        <span style="font-size:18px">${u.icon}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:11px;color:var(--muted)">컷 ${u.cut}등급</span>
-        <span style="font-weight:800;font-size:12px">${u.verdict}</span>
-      </div>
-    </div>`).join('');
+  curFilter = f;
+
+  // 1) 희망 학과 카테고리 필터
+  let data = univData;
+  if (wishCategories.length > 0) {
+    data = data.filter(u =>
+      u.category && u.category.some(c => wishCategories.includes(c))
+    );
+  }
+
+  // 2) 판정 필터
+  if (f !== 'all') data = data.filter(u => u.tag === f);
+
+  // 등급 컷 오름차순 정렬
+  data = [...data].sort((a,b) => a.cut - b.cut);
+
+  // 범례용 전체(판정 필터 없는 상태) 카운트
+  const allForLegend = wishCategories.length > 0
+    ? univData.filter(u => u.category && u.category.some(c => wishCategories.includes(c)))
+    : univData;
+  const cnt = {safe:0,ok:0,try:0,hard:0};
+  allForLegend.forEach(u => cnt[u.tag]++);
+
+  // count msg
+  const msg = wishCategories.length > 0
+    ? `"${wishCategories.slice(0,2).join('·')}" 관련 ${allForLegend.length}개 결과`
+    : `전체 ${univData.length}개`;
+  const countEl = document.getElementById('univ-count-msg');
+  if (countEl) countEl.textContent = msg;
+
+  const grid = document.getElementById('univ-grid');
+  const empty = document.getElementById('univ-empty');
+
+  if (data.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    grid.innerHTML = data.map(u => `
+      <div class="card ${u.cls}" style="padding:12px;border-radius:10px;transition:transform 0.15s"
+           onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+          <div style="min-width:0">
+            <div style="font-weight:800;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.univ||u.name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.dept}</div>
+          </div>
+          <span style="font-size:17px;flex-shrink:0;margin-left:4px">${u.icon}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.06)">
+          <span style="font-size:10px;color:var(--muted)">컷 ${u.cut}등급</span>
+          <span style="font-weight:800;font-size:12px">${u.verdict}</span>
+        </div>
+        ${u.custom ? '<div style="font-size:9px;color:#a78bfa;margin-top:3px">✏ 직접 추가</div>' : ''}
+      </div>`).join('');
+  }
 }
 
+/**
+ * 판정 필터 탭 전환
+ */
 function filterU(f, btn) {
-  curFilter = f;
   document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderUnivGrid(f);
+}
+
+// ═══════════════════════════════════════════════════════
+// 희망 학과 검색
+// ═══════════════════════════════════════════════════════
+
+/**
+ * 사용자 입력 텍스트에서 카테고리 태그 배열을 추출한다
+ * @param {string} text - 사용자 입력
+ * @returns {string[]}
+ */
+function textToCategories(text) {
+  const cats = new Set();
+  const lower = text.toLowerCase().trim();
+  if (!lower) return [];
+
+  // KEYWORD_MAP에서 직접 매칭
+  Object.entries(KEYWORD_MAP).forEach(([kw, cat]) => {
+    if (lower.includes(kw.toLowerCase())) cats.add(cat);
+  });
+
+  // UNIV_DB category 직접 매칭
+  const allCats = new Set(UNIV_DB.flatMap(u => u.category||[]));
+  allCats.forEach(c => { if (lower.includes(c.toLowerCase())) cats.add(c); });
+
+  return [...cats];
+}
+
+/**
+ * 검색 입력창 변경 핸들러 — 자동완성 드롭다운 표시
+ */
+function onWishInput(val) {
+  const dd = document.getElementById('wish-dropdown');
+  if (!val.trim()) { dd.style.display='none'; return; }
+
+  const cats = textToCategories(val);
+  // 매칭된 카테고리로 관련 학과명 추출 (최대 8개)
+  const suggestions = new Set();
+  if (cats.length) {
+    UNIV_DB.filter(u => u.category?.some(c => cats.includes(c)))
+      .slice(0, 20).forEach(u => suggestions.add(u.dept));
+  }
+  // 부분 문자열 일치 과목명도 추가
+  const lower = val.toLowerCase();
+  UNIV_DB.filter(u => u.dept.toLowerCase().includes(lower) || u.univ.toLowerCase().includes(lower))
+    .slice(0, 8).forEach(u => suggestions.add(u.dept));
+
+  const list = [...suggestions].slice(0, 8);
+  if (!list.length) { dd.style.display='none'; return; }
+
+  dd.innerHTML = list.map(s =>
+    `<div onclick="selectSuggestion('${s.replace(/'/g,"\\'")}')"
+          style="padding:9px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f5f3ff;transition:background 0.1s"
+          onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='#fff'">${s}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+/** 드롭다운 항목 선택 */
+function selectSuggestion(dept) {
+  document.getElementById('wish-dept').value = dept;
+  document.getElementById('wish-dropdown').style.display = 'none';
+  applyWishFilter();
+}
+
+/** 검색 버튼 클릭 */
+function applyWishFilter() {
+  document.getElementById('wish-dropdown').style.display = 'none';
+  const val = document.getElementById('wish-dept').value.trim();
+  if (!val) return;
+
+  const newCats = textToCategories(val);
+  if (!newCats.length) {
+    showToast('⚠️ 인식할 수 없는 학과명입니다. 다른 키워드를 시도해보세요', 'warning');
+    return;
+  }
+
+  // 중복 없이 추가
+  newCats.forEach(c => { if (!wishCategories.includes(c)) wishCategories.push(c); });
+
+  document.getElementById('wish-dept').value = '';
+  updateWishTags();
+  renderUnivGrid(curFilter);
+  showToast(`🎯 "${val}" 관련 학과 필터 적용됨`);
+}
+
+/** 빠른선택 버튼 */
+function quickSelect(text) {
+  document.getElementById('wish-dept').value = text;
+  applyWishFilter();
+}
+
+/** 희망 학과 태그 UI 업데이트 */
+function updateWishTags() {
+  const container = document.getElementById('wish-tags');
+  if (!wishCategories.length) { container.innerHTML=''; return; }
+  container.innerHTML = wishCategories.map(c =>
+    `<span style="display:inline-flex;align-items:center;gap:5px;background:#ede9fe;color:#6d28d9;
+      padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">
+      ${c}
+      <button onclick="removeWishCat('${c}')" style="background:none;border:none;cursor:pointer;color:#a78bfa;font-size:13px;line-height:1;padding:0">×</button>
+    </span>`
+  ).join('');
+}
+
+/** 희망 카테고리 태그 제거 */
+function removeWishCat(cat) {
+  wishCategories = wishCategories.filter(c => c !== cat);
+  updateWishTags();
+  renderUnivGrid(curFilter);
+  if (!wishCategories.length) showToast('📋 전체 대학 목록으로 돌아갑니다');
+}
+
+/** 전체 보기 (필터 초기화) */
+function clearWishFilter() {
+  wishCategories = [];
+  document.getElementById('wish-dept').value = '';
+  updateWishTags();
+  renderUnivGrid(curFilter);
+}
+
+// 외부 클릭시 드롭다운 닫기
+document.addEventListener('click', e => {
+  const dd = document.getElementById('wish-dropdown');
+  if (dd && !dd.contains(e.target) && e.target.id !== 'wish-dept') dd.style.display = 'none';
+});
+
+// ═══════════════════════════════════════════════════════
+// 직접 추가 기능
+// ═══════════════════════════════════════════════════════
+
+let customRowCount = 0;
+
+/** 직접 추가 행을 추가한다 */
+function addCustomRow() {
+  const id = ++customRowCount;
+  const container = document.getElementById('custom-rows');
+  const div = document.createElement('div');
+  div.id = `crow-${id}`;
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 80px 32px;gap:6px;align-items:center';
+  div.innerHTML = `
+    <input type="text" placeholder="대학교명" id="cu-${id}"
+      style="border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none">
+    <input type="text" placeholder="학과명" id="cd-${id}"
+      style="border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none">
+    <input type="number" placeholder="컷(등급)" id="cc-${id}" min="1" max="9" step="0.1"
+      style="border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none;text-align:center">
+    <button onclick="document.getElementById('crow-${id}').remove()"
+      style="background:#fee2e2;border:none;border-radius:7px;color:#dc2626;font-size:16px;cursor:pointer;padding:4px;line-height:1">×</button>
+  `;
+  container.appendChild(div);
+}
+
+/** 직접 추가 항목을 univData에 반영한다 */
+function applyCustomRows() {
+  const newItems = [];
+  let added = 0;
+  for (let i = 1; i <= customRowCount; i++) {
+    const u = document.getElementById(`cu-${i}`)?.value.trim();
+    const d = document.getElementById(`cd-${i}`)?.value.trim();
+    const c = parseFloat(document.getElementById(`cc-${i}`)?.value);
+    if (!u || !d || isNaN(c) || c<1 || c>9) continue;
+    newItems.push({ univ:u, dept:d, cut:c, category:[], custom:true });
+    added++;
+  }
+  customUnivList = newItems;
+
+  const avg = calcAvg();
+  if (avg !== null) renderUniv(avg);
+
+  if (added) showToast(`✅ ${added}개 항목 추가됨`);
+  else showToast('⚠️ 추가할 항목이 없습니다 (대학명·학과명·컷등급 모두 입력 필요)', 'warning');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1407,34 +1966,16 @@ function showToast(msg, type='success') {
 }
 
 // ═══════════════════════════════════════════════════════
-// 시뮬레이터 토글
-// ═══════════════════════════════════════════════════════
-
-function toggleSim() {
-  simOpened = !simOpened;
-  const sec = document.getElementById('sec-sim');
-  sec.style.display = simOpened ? 'block' : 'none';
-  document.getElementById('btn-toggle-sim').textContent = simOpened ? '🎯 시뮬레이터 닫기' : '🎯 성적 시뮬레이터 열기';
-  if (simOpened) buildSimulator();
-}
-
-// ═══════════════════════════════════════════════════════
 // 초기화
 // ═══════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 새 세션으로 들어왔을 때 기존 로컬스토리지 초기화
+  try { localStorage.removeItem('cp_student_v3'); } catch(e) {}
   loadSaved();
 
   // 이름 복원
   if (ST.name) document.getElementById('inp-name').value = ST.name;
-  // 목표 전공 복원
-  if (ST.targetMajor) document.getElementById('inp-target').value = ST.targetMajor;
-  if (ST.targetMajor) {
-    const cats = textToCategories(ST.targetMajor);
-    wishCategories = [];
-    cats.forEach(c=>{ if (!wishCategories.includes(c)) wishCategories.push(c); });
-    updateWishTags();
-  }
 
   // 폼 렌더
   buildYr1(); buildYr2(); buildYr3();
@@ -1446,8 +1987,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateBadges();
   updateLiveAvg();
 
-  // 시뮬레이터 빌드
-  buildSimulator();
+  // 시뮬레이터는 켜질 때만 빌드한다
+  //buildSimulator();
 
   // 저장된 데이터 있으면 자동 분석 복원
   const filled = filledGrades();
