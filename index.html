@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareerPath — 진로진학 플랫폼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #f8faff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: auto; /* allow scrolling */
+    position: relative;
+  }
+
+  /* 배경 그리드 패턴 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(26,86,219,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26,86,219,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  /* 배경 그라데이션 블롭 */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: float 8s ease-in-out infinite;
+  }
+  .blob-1 {
+    width: 500px; height: 500px;
+    background: rgba(26,86,219,0.08);
+    top: -150px; left: -150px;
+    animation-delay: 0s;
+  }
+  .blob-2 {
+    width: 400px; height: 400px;
+    background: rgba(6,182,212,0.07);
+    bottom: -100px; right: -100px;
+    animation-delay: 3s;
+  }
+  .blob-3 {
+    width: 300px; height: 300px;
+    background: rgba(99,102,241,0.06);
+    top: 40%; left: 40%;
+    animation-delay: 5s;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(20px, -30px) scale(1.05); }
+    66% { transform: translate(-15px, 20px) scale(0.97); }
+  }
+
+  .hub-container {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 40px 20px;
+    max-width: 860px;
+    width: 100%;
+    animation: fadeInUp 0.7s ease both;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(26,86,219,0.08);
+    border: 1px solid rgba(26,86,219,0.15);
+    border-radius: 100px;
+    padding: 6px 16px;
+    margin-bottom: 28px;
+    animation: fadeInUp 0.7s ease 0.1s both;
+  }
+  .logo-badge .dot {
+    width: 7px; height: 7px;
+    background: #1a56db;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .logo-badge span {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: #1a56db;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .hero-title {
+    font-size: clamp(36px, 6vw, 58px);
+    font-weight: 900;
+    line-height: 1.15;
+    color: #0f172a;
+    margin-bottom: 18px;
+    letter-spacing: -1.5px;
+    animation: fadeInUp 0.7s ease 0.2s both;
+  }
+  .hero-title .highlight {
+    background: linear-gradient(135deg, #1a56db, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 17px;
+    color: #64748b;
+    line-height: 1.7;
+    max-width: 520px;
+    margin: 0 auto 48px;
+    font-weight: 400;
+    animation: fadeInUp 0.7s ease 0.3s both;
+  }
+
+  /* 선택 카드들 */
+  .mode-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+    animation: fadeInUp 0.7s ease 0.4s both;
+  }
+
+  .mode-card {
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 24px;
+    padding: 36px 32px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-decoration: none;
+    display: block;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  .mode-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 22px;
+  }
+
+  .mode-card.teacher::before {
+    background: linear-gradient(135deg, rgba(26,86,219,0.04), rgba(6,182,212,0.04));
+  }
+  .mode-card.student::before {
+    background: linear-gradient(135deg, rgba(99,102,241,0.04), rgba(16,185,129,0.04));
+  }
+
+  .mode-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.1);
+  }
+  .mode-card.teacher:hover { border-color: #93c5fd; }
+  .mode-card.student:hover { border-color: #a5b4fc; }
+  .mode-card:hover::before { opacity: 1; }
+
+  .card-icon-wrap {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    margin-bottom: 20px;
+  }
+  .teacher .card-icon-wrap { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+  .student .card-icon-wrap { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .teacher .card-label { color: #1a56db; }
+  .student .card-label { color: #6d28d9; }
+
+  .card-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .card-desc {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .card-features {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 28px;
+  }
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #475569;
+  }
+  .feature-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .teacher .feature-dot { background: #1a56db; }
+  .student .feature-dot { background: #6d28d9; }
+
+  .card-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+  .teacher .card-cta {
+    background: linear-gradient(135deg, #1a56db, #1d4ed8);
+    color: #fff;
+  }
+  .student .card-cta {
+    background: linear-gradient(135deg, #6d28d9, #5b21b6);
+    color: #fff;
+  }
+  .mode-card:hover .card-cta { filter: brightness(1.08); }
+
+  .arrow {
+    font-size: 18px;
+    transition: transform 0.2s;
+  }
+  .mode-card:hover .arrow { transform: translateX(4px); }
+
+  /* 하단 통계 배지 */
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    animation: fadeInUp 0.7s ease 0.5s both;
+  }
+  .stat-item {
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .stat-lbl {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+  .stat-divider {
+    width: 1px;
+    background: #e2e8f0;
+    align-self: stretch;
+  }
+
+  @media (max-width: 640px) {
+    .mode-cards { grid-template-columns: 1fr; }
+    .stats-row { gap: 20px; }
+    .hero-title { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="hub-container">
+
+  <div class="logo-badge">
+    <div class="dot"></div>
+    <span>CAREERPATH · 데이터 기반 진로진학 플랫폼</span>
+  </div>
+
+  <h1 class="hero-title">
+    데이터로 설계하는<br>
+    <span class="highlight">나의 진로</span>
+  </h1>
+
+  <p class="hero-sub">
+    선생님은 반 전체 성적을 분석하고,<br>학생은 맞춤형 진로 로드맵을 설계하세요.<br>
+    모드를 선택해주세요.
+  </p>
+
+  <div class="mode-cards">
+
+    <!-- 선생님 카드 -->
+    <a href="teacher.html" class="mode-card teacher">
+      <div class="card-icon-wrap">👩‍🏫</div>
+      <div class="card-label">Teacher Mode</div>
+      <div class="card-title">선생님 모드</div>
+      <div class="card-desc">
+        반 전체 학생 데이터를 업로드하고<br>체계적인 상담 자료를 만들어보세요.
+      </div>
+      <div class="card-features">
+        <div class="feature-item"><div class="feature-dot teacher"></div>엑셀/CSV 데이터 일괄 분석</div>
+        <div class="feature-item"><div class="feature-dot teacher"></div>과목별 평균·표준편차 시각화</div>
+        <div class="feature-item"><div class="feature-dot teacher"></div>위기 학생 자동 탐지 알림</div>
+        <div class="feature-item"><div class="feature-dot teacher"></div>개별 레이더 차트 상담 리포트</div>
+        <div class="feature-item"><div class="feature-dot teacher"></div>PNG/PDF 내보내기</div>
+      </div>
+      <div class="card-cta">
+        <span>선생님 대시보드 열기</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <!-- 학생 카드 -->
+    <a href="student.html" class="mode-card student">
+      <div class="card-icon-wrap">🎓</div>
+      <div class="card-label">Student Mode</div>
+      <div class="card-title">학생 모드</div>
+      <div class="card-desc">
+        내 성적을 입력하고 AI가 분석한<br>맞춤형 진로 로드맵을 받아보세요.
+      </div>
+      <div class="card-features">
+        <div class="feature-item"><div class="feature-dot student"></div>등급 향상 시뮬레이터 (슬라이더)</div>
+        <div class="feature-item"><div class="feature-dot student"></div>16개 대학 합격 가능성 예측</div>
+        <div class="feature-item"><div class="feature-dot student"></div>AI 기반 진로 계열 추천</div>
+        <div class="feature-item"><div class="feature-dot student"></div>과목별 역량 레이더 차트</div>
+        <div class="feature-item"><div class="feature-dot student"></div>성적 데이터 자동 저장</div>
+      </div>
+      <div class="card-cta">
+        <span>내 진로 설계 시작하기</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-num">16+</div>
+      <div class="stat-lbl">대학 예측 데이터</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-num">5과목</div>
+      <div class="stat-lbl">종합 성적 분석</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-num">100%</div>
+      <div class="stat-lbl">오프라인 작동</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-num">무료</div>
+      <div class="stat-lbl">로그인 불필요</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

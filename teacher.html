@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>선생님 모드 — CareerPath</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a56db; --primary-light: #e8f0fe; --primary-dark: #1040a6;
+    --accent: #06b6d4; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    --surface: #f8faff; --card: #ffffff; --border: #e2e8f0;
+    --text: #1e293b; --text-secondary: #64748b; --sidebar-width: 220px;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--surface); color: var(--text); margin: 0; overflow-x: hidden; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+  /* 사이드바 */
+  #sidebar {
+    width: var(--sidebar-width); min-height: 100vh;
+    background: linear-gradient(160deg, #0f172a 0%, #1e3a8a 100%);
+    position: fixed; left: 0; top: 0;
+    display: flex; flex-direction: column; z-index: 100;
+  }
+  .sidebar-logo { padding: 24px 18px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .logo-text { font-family: 'Space Mono', monospace; color: #fff; font-size: 16px; font-weight: 700; }
+  .logo-sub { color: rgba(255,255,255,0.45); font-size: 10px; margin-top: 2px; }
+  .mode-badge {
+    margin: 14px 14px 8px;
+    background: rgba(26,86,219,0.35);
+    border: 1px solid rgba(99,179,237,0.3);
+    border-radius: 10px; padding: 10px 14px;
+    color: #93c5fd; font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-title { padding: 14px 18px 5px; color: rgba(255,255,255,0.3); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 9px;
+    padding: 10px 18px; margin: 3px 10px;
+    border-radius: 8px; cursor: pointer; transition: all 0.2s;
+    color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500;
+    border: none; background: transparent; width: calc(100% - 20px); text-align: left;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .nav-btn .ico { font-size: 15px; width: 20px; text-align: center; }
+  .back-btn {
+    margin: 14px; padding: 10px 14px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; color: rgba(255,255,255,0.5);
+    font-size: 12px; cursor: pointer; text-align: center;
+    text-decoration: none; display: block; transition: all 0.2s;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+  /* 메인 */
+  #main { margin-left: var(--sidebar-width); min-height: 100vh; }
+  .top-bar {
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 14px 28px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 50;
+  }
+  .top-bar h1 { font-size: 17px; font-weight: 700; }
+  .top-bar .sub { color: var(--text-secondary); font-size: 12px; margin-top: 1px; }
+
+  /* 카드 */
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 7px; }
+
+  /* 버튼 */
+  .btn-p { background: var(--primary); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif; }
+  .btn-p:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,86,219,0.3); }
+  .btn-s { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif; }
+  .btn-s:hover { background: #e2e8f0; }
+
+  /* 통계 카드 */
+  .stat-card { border-radius: 14px; padding: 18px; color: #fff; }
+  .stat-card.blue { background: linear-gradient(135deg, #1a56db, #06b6d4); }
+  .stat-card.green { background: linear-gradient(135deg, #059669, #10b981); }
+  .stat-card.orange { background: linear-gradient(135deg, #d97706, #f59e0b); }
+  .stat-card.red { background: linear-gradient(135deg, #dc2626, #ef4444); }
+  .stat-val { font-size: 26px; font-weight: 800; font-family: 'Space Mono', monospace; }
+  .stat-lbl { font-size: 11px; opacity: 0.8; margin-top: 3px; }
+
+  /* 업로드 존 */
+  .upload-zone {
+    border: 2px dashed #cbd5e1; border-radius: 12px; padding: 36px;
+    text-align: center; cursor: pointer; transition: all 0.2s; background: #fafcff;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: var(--primary-light); }
+
+  /* 테이블 */
+  .dt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .dt th { background: #f1f5f9; padding: 9px 13px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 11px; position: sticky; top: 0; }
+  .dt td { padding: 9px 13px; border-bottom: 1px solid #f1f5f9; }
+  .dt tr:hover td { background: #f8faff; cursor: pointer; }
+  .dt tr.crisis td { background: #fff5f5; }
+  .dt tr.crisis td:first-child { border-left: 3px solid var(--danger); }
+
+  /* 배지 */
+  .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+  .bd-red { background: #fee2e2; color: #dc2626; }
+  .bd-green { background: #d1fae5; color: #059669; }
+  .bd-blue { background: #dbeafe; color: #1d4ed8; }
+
+  /* 모달 */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(5px); opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-box {
+    background: #fff; border-radius: 20px; padding: 30px; width: 540px;
+    max-width: 90vw; max-height: 88vh; overflow-y: auto;
+    transform: scale(0.94); transition: transform 0.25s;
+  }
+  .modal-overlay.open .modal-box { transform: scale(1); }
+
+  /* 애니메이션 */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .fi { animation: fadeInUp 0.4s ease both; }
+
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .blink { animation: blink 1.5s infinite; }
+</style>
+</head>
+<body>
+
+<!-- 사이드바 -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">CareerPath</div>
+    <div class="logo-sub">데이터 기반 진로진학 플랫폼</div>
+  </div>
+
+  <div class="mode-badge">👩‍🏫 선생님 모드</div>
+
+  <div class="nav-title">메뉴</div>
+  <button class="nav-btn" onclick="scrollTo('upload-section')"><span class="ico">📤</span> 데이터 업로드</button>
+  <button class="nav-btn" onclick="scrollTo('stats-section')"><span class="ico">📊</span> 반 통계 현황</button>
+  <button class="nav-btn" onclick="scrollTo('crisis-section')"><span class="ico">🚨</span> 위기 학생</button>
+  <button class="nav-btn" onclick="scrollTo('table-section')"><span class="ico">📋</span> 학생 목록</button>
+
+  <div style="flex:1"></div>
+
+  <a href="index.html" class="back-btn">← 모드 선택으로</a>
+  <div style="padding:10px 14px 16px;color:rgba(255,255,255,0.25);font-size:10px">CareerPath v1.0</div>
+</nav>
+
+<!-- 메인 -->
+<div id="main">
+  <div class="top-bar">
+    <div>
+      <h1>📊 선생님 대시보드</h1>
+      <div class="sub">엑셀 파일을 업로드하여 반 전체 데이터를 분석하세요</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-s" onclick="exportPNG()" id="btn-png" style="display:none;font-size:12px">📷 PNG</button>
+      <button class="btn-s" onclick="exportPDF()" id="btn-pdf" style="display:none;font-size:12px">📄 PDF</button>
+      <button class="btn-s" onclick="clearData()" style="font-size:12px">🗑 초기화</button>
+    </div>
+  </div>
+
+  <div style="padding:24px 28px" id="dashboard">
+
+    <!-- 업로드 -->
+    <div class="card fi" id="upload-section" style="margin-bottom:20px">
+      <div class="card-title">📤 엑셀 / CSV 업로드 (과거/현재 분리)</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div class="upload-zone" id="drop-zone-past"
+             onclick="document.getElementById('file-input-past').click()"
+             ondragover="onDragOver(event,'past')" ondragleave="onDragLeave('past')" ondrop="onDrop(event,'past')">
+          <div style="font-size:24px;margin-bottom:6px">🕒</div>
+          <div style="font-weight:700;color:#1e293b;margin-bottom:3px">과거 데이터 업로드</div>
+          <div style="color:#64748b;font-size:13px">지원 형식: .xlsx, .xls, .csv</div>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;flex-basis:100%;padding-left:8px;margin-top:-6px">필수 열: 이름 (그 외 과목은 자유롭게)</div>
+        <div class="upload-zone" id="drop-zone-current"
+             onclick="document.getElementById('file-input-current').click()"
+             ondragover="onDragOver(event,'current')" ondragleave="onDragLeave('current')" ondrop="onDrop(event,'current')">
+          <div style="font-size:24px;margin-bottom:6px">📈</div>
+          <div style="font-weight:700;color:#1e293b;margin-bottom:3px">현재 데이터 업로드</div>
+          <div style="color:#64748b;font-size:13px">지원 형식: .xlsx, .xls, .csv</div>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;flex-basis:100%;padding-left:8px;margin-top:-6px">필수 열: 이름 (그 외 과목은 자유롭게)</div>
+      </div>
+      <input type="file" id="file-input-past" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileChange(event,'past')">
+      <input type="file" id="file-input-current" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileChange(event,'current')">
+      <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn-s" onclick="loadSample()" style="font-size:12px">📋 샘플 데이터 불러오기(가상의 데이터)</button>
+        <span id="file-status-past" style="font-size:13px;color:#64748b"></span>
+        <span id="file-status-current" style="font-size:13px;color:#64748b"></span>
+      </div>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div id="stat-cards-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;display:none"></div>
+
+    <!-- 차트 행 -->
+    <div id="charts-row" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;display:none">
+      <div class="card fi">
+        <div class="card-title">📊 과목별 평균 & 표준편차</div>
+        <canvas id="barChart" height="210"></canvas>
+      </div>
+      <div class="card fi">
+        <div class="card-title">📈 내신 등급 분포</div>
+        <canvas id="histChart" height="210"></canvas>
+      </div>
+    </div>
+
+    <!-- 위기 학생 -->
+    <div class="card fi" id="crisis-section" style="margin-bottom:20px;display:none">
+      <div class="card-title">
+        🚨 집중 상담 대상
+        <span class="badge bd-red blink" id="crisis-cnt">0명</span>
+      </div>
+      <div id="crisis-list"></div>
+    </div>
+
+    <!-- 학생 테이블 -->
+    <div class="card fi" id="table-section" style="display:none">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📋 전체 학생 목록 <span id="st-count" style="font-weight:400;font-size:12px;color:#64748b"></span></span>
+        <input id="search" type="text"
+          style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;font-family:'Noto Sans KR',sans-serif;width:190px"
+          placeholder="🔍 이름 검색..." oninput="filterTable()">
+      </div>
+      <div style="overflow:auto;max-height:400px">
+        <table class="dt" id="st-table">
+          <thead>
+            <tr>
+              <th>이름</th><th>...</th>
+            </tr>
+          </thead>
+          <tbody id="st-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 빈 상태 -->
+    <div id="empty-state" style="text-align:center;padding:80px 20px;color:#94a3b8">
+      <div style="font-size:60px;margin-bottom:14px">📊</div>
+      <div style="font-size:17px;font-weight:700;color:#64748b;margin-bottom:6px">데이터를 업로드해주세요</div>
+      <div style="font-size:13px">엑셀/CSV 파일을 올리거나 샘플 데이터를 불러오세요</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 학생 상세 모달 -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 id="modal-name" style="font-size:17px;font-weight:800"></h2>
+      <button onclick="document.getElementById('modal').classList.remove('open')"
+              style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;line-height:1">✕</button>
+    </div>
+    <canvas id="radarChart" height="260" style="margin-bottom:16px"></canvas>
+    <div id="modal-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:13px"></div>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast" style="
+  position:fixed;bottom:22px;right:22px;
+  background:#1e293b;color:#fff;padding:11px 18px;
+  border-radius:10px;font-size:13px;font-weight:500;
+  transform:translateY(80px);opacity:0;transition:all 0.3s;
+  z-index:9999;max-width:300px;box-shadow:0 4px 18px rgba(0,0,0,0.2)
+"></div>
+
+<script>
+// ========== 전역 상태 ==========
+const S = { current: [], past: [], subjects: [], charts: {} };
+
+/**
+ * 과목 목록을 병합한다
+ * @param {Array<string>} newSubs
+ */
+function updateSubjects(newSubs) {
+  const set = new Set([...S.subjects, ...newSubs]);
+  S.subjects = Array.from(set);
+}
+
+// ========== localStorage ==========
+/**
+ * 학생 데이터를 localStorage에 저장한다
+ */
+function save() {
+  try {
+    localStorage.setItem('t_current', JSON.stringify(S.current));
+    localStorage.setItem('t_past', JSON.stringify(S.past));
+    localStorage.setItem('t_subjects', JSON.stringify(S.subjects));
+    // keep legacy key for older versions
+    localStorage.setItem('t_students', JSON.stringify(S.current));
+  } catch(e) {}
+}
+
+/**
+ * localStorage에서 데이터를 복원한다
+ */
+function load() {
+  try {
+    const c = localStorage.getItem('t_current');
+    const p = localStorage.getItem('t_past');
+    const s = localStorage.getItem('t_subjects');
+    // migration from older storage key
+    const old = localStorage.getItem('t_students');
+    if (c) S.current = JSON.parse(c);
+    else if (old) {
+      S.current = JSON.parse(old);
+      console.log('Migrated data from t_students');
+    }
+    if (p) S.past = JSON.parse(p);
+    if (s) S.subjects = JSON.parse(s);
+    else if (S.current.length) {
+      const keys = Object.keys(S.current[0]);
+      S.subjects = keys.filter(k => k !== '이름' && k !== '내신평균');
+    }
+  } catch(e) {}
+}
+
+/**
+ * 모든 데이터를 초기화한다
+ */
+function clearData() {
+  if (!confirm('모든 데이터를 초기화하시겠습니까?')) return;
+  localStorage.removeItem('t_current');
+  localStorage.removeItem('t_past');
+  localStorage.removeItem('t_subjects');
+  localStorage.removeItem('t_students'); // legacy key
+  location.reload();
+}
+
+// ========== 파일 처리 ==========
+function onDragOver(e, type) {
+  e.preventDefault();
+  const el = document.getElementById('drop-zone-' + type);
+  if (el) el.classList.add('dragover');
+}
+function onDragLeave(type) {
+  const el = document.getElementById('drop-zone-' + type);
+  if (el) el.classList.remove('dragover');
+}
+function onDrop(e, type) {
+  e.preventDefault();
+  const el = document.getElementById('drop-zone-' + type);
+  if (el) el.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0], type);
+}
+function onFileChange(e, type) {
+  if (e.target.files[0]) processFile(e.target.files[0], type);
+}
+
+/**
+ * 업로드된 파일을 SheetJS로 파싱하여 학생 데이터를 추출한다
+ * @param {File} file - 업로드 파일
+ * @param {'current'|'past'} type - 저장 대상
+ */
+function processFile(file, type) {
+  if (!/\.(xlsx|xls|csv)$/i.test(file.name)) { toast('⚠️ xlsx, xls, csv만 지원합니다', 'error'); return; }
+  document.getElementById(`file-status-${type}`).textContent = '📂 읽는 중...';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      const { valid, errors, subjects } = validate(raw);
+      if (subjects.length) updateSubjects(subjects);
+      if (errors.length) toast(`⚠️ ${errors.length}개 행 오류 (유효 데이터만 사용)`, 'warning');
+      if (!valid.length) { toast('❌ 유효한 데이터가 없습니다', 'error'); return; }
+      if (type === 'past') {
+        S.past = valid;
+      } else {
+        S.current = valid;
+      }
+      save();
+      document.getElementById(`file-status-${type}`).textContent = `✅ ${valid.length}명 로드 (${file.name})`;
+      render();
+      toast(`✅ ${valid.length}명 데이터 로드 완료 (${type})`);
+    } catch(err) { toast('❌ 파싱 오류', 'error'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/**
+ * 파싱된 원본 데이터를 검증하고 정규화한다
+ * @param {Array} raw - SheetJS JSON 배열
+ * @returns {{ valid: Array, errors: Array }}
+ */
+function validate(raw) {
+  const valid = [], errors = [];
+  if (!raw.length || !('이름' in raw[0])) { errors.push('필수 열 누락'); return { valid, errors, subjects: [] }; }
+  // subjects are any columns except 이름/내신평균
+  const allSubjects = Object.keys(raw[0]).filter(k => k !== '이름' && k !== '내신평균');
+  const good = new Set();
+  raw.forEach((row) => {
+    allSubjects.forEach(subj => {
+      const v = parseFloat(row[subj]);
+      if (!isNaN(v)) good.add(subj);
+    });
+  });
+  const subjects = Array.from(good);
+  raw.forEach((row, i) => {
+    const name = String(row['이름'] || '').trim();
+    if (!name) { errors.push(`${i+2}행 이름 없음`); return; }
+    const s = { 이름: name };
+    let bad = false;
+    subjects.forEach(subj => {
+      const v = parseFloat(row[subj]);
+      if (isNaN(v) || v < 1 || v > 9) { errors.push(`${i+2}행 ${subj} 오류`); bad = true; }
+      else s[subj] = v;
+    });
+    if (bad) return;
+    s.내신평균 = row['내신평균'] !== '' && !isNaN(parseFloat(row['내신평균']))
+      ? parseFloat(parseFloat(row['내신평균']).toFixed(2))
+      : calcAvg(s);
+    valid.push(s);
+  });
+  return { valid, errors, subjects };
+}
+
+// ========== 샘플 데이터 ==========
+/**
+ * 테스트용 샘플 20명 데이터를 생성한다
+ */
+function loadSample() {
+  const names = ['김민준','이서연','박지호','최수아','정민서','강도현','윤지아','임현우','한소은','조태양',
+    '신예진','오준혁','백채원','송민재','류지연','권시우','나은솔','문재원','서하진','진유나'];
+  // 기본 과목 리스트
+  S.subjects = ['국어','수학','영어','탐구1','탐구2'];
+  // 현재 데이터 생성
+  S.current = names.map(name => {
+    const s = { 이름: name };
+    S.subjects.forEach(subj => { s[subj] = Math.max(1, Math.min(9, Math.round(1 + Math.random() * 6))); });
+    s.내신평균 = calcAvg(s);
+    return s;
+  });
+  // 과거 데이터는 현재를 복사하고 일부 성적을 낮춰 위기 시나리오 생성
+  S.past = S.current.map(s => ({ ...s }));
+  if (S.past.length > 3) {
+    S.past[0].내신평균 = S.current[0].내신평균 - 1.2;
+    S.past[2].내신평균 = S.current[2].내신평균 - 0.8;
+    S.past[5].내신평균 = S.current[5].내신평균 - 0.6;
+  }
+  save();
+  document.getElementById('file-status-past').textContent = `✅ 과거 ${S.past.length}명 샘플`;
+  document.getElementById('file-status-current').textContent = `✅ 현재 ${S.current.length}명 샘플`;
+  render();
+  toast('✅ 샘플 과거/현재 데이터 로드 완료');
+}
+
+// ========== 통계 계산 ==========
+/**
+ * 숫자 배열의 평균을 계산한다
+ * @param {number[]} arr
+ * @returns {number}
+ */
+function avg(arr) { return arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : 0; }
+
+/**
+ * 숫자 배열의 표준편차를 계산한다
+ * @param {number[]} arr
+ * @returns {number}
+ */
+function std(arr) {
+  if (arr.length < 2) return 0;
+  const m = avg(arr);
+  return Math.sqrt(avg(arr.map(v => (v - m) ** 2)));
+}
+
+/**
+ * 학생 데이터로 가중 내신 평균을 계산한다
+ * @param {Object} s - 학생 객체
+ * @returns {number}
+ */
+function calcAvg(s) {
+  if (!S.subjects.length) return 0;
+  const w = 1 / S.subjects.length;
+  return parseFloat((S.subjects.reduce((t, subj) => t + (s[subj] || 0) * w, 0)).toFixed(2));
+}
+
+/**
+ * 이전 성적 대비 0.5등급 이상 하락한 위기 학생 목록을 반환한다
+ * @returns {Array}
+ */
+function getCrisis() {
+  if (!S.past.length) return [];
+  const map = {};
+  S.past.forEach(p => map[p.이름] = p.내신평균);
+  return S.current
+    .filter(s => map[s.이름] !== undefined && (s.내신평균 - map[s.이름]) >= 0.5)
+    .map(s => ({ ...s, drop: parseFloat((s.내신평균 - map[s.이름]).toFixed(2)), prev: map[s.이름] }))
+    .sort((a, b) => b.drop - a.drop);
+}
+
+// ========== 렌더링 ==========
+/**
+ * 전체 대시보드를 렌더링한다
+ */
+function render() {
+  const sts = S.current;
+  if (!sts.length) return;
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('btn-png').style.display = 'inline-flex';
+  document.getElementById('btn-pdf').style.display = 'inline-flex';
+  renderStatCards(sts);
+  renderBarChart(sts);
+  renderHistChart(sts);
+  renderCrisis(sts);
+  renderTable(sts);
+  ['stat-cards-row','charts-row','crisis-section','table-section'].forEach(id => {
+    document.getElementById(id).style.display = id === 'charts-row' ? 'grid' : (id === 'stat-cards-row' ? 'grid' : 'block');
+  });
+}
+
+/**
+ * 요약 통계 카드 4개를 렌더링한다
+ * @param {Array} sts - 학생 배열
+ */
+function renderStatCards(sts) {
+  const avgGrade = avg(sts.map(s => s.내신평균)).toFixed(2);
+  const best = sts.reduce((a, b) => a.내신평균 < b.내신평균 ? a : b);
+  const crisis = getCrisis().length;
+  const pastCount = S.past.length;
+  const row = document.getElementById('stat-cards-row');
+  row.style.display = 'grid';
+  const cards = [
+    { cls:'blue', icon:'👥', val: sts.length+'명', lbl:'현재 학생 수' },
+    { cls:'green', icon:'📊', val: avgGrade+'등급', lbl:'반 내신 평균' },
+    { cls:'orange', icon:'🏆', val: best.이름, lbl:'최우수 학생' },
+    { cls:'red', icon:'🚨', val: crisis+'명', lbl:'집중 상담 대상' },
+  ];
+  if (pastCount) {
+    cards.unshift({ cls:'blue', icon:'🕒', val: pastCount+'명', lbl:'과거 데이터 학생 수' });
+  }
+  row.innerHTML = cards.map(c => `
+    <div class="stat-card ${c.cls} fi">
+      <div style="font-size:22px;margin-bottom:5px">${c.icon}</div>
+      <div class="stat-val">${c.val}</div>
+      <div class="stat-lbl">${c.lbl}</div>
+    </div>`).join('');
+}
+
+/**
+ * 과목별 평균 및 표준편차 막대 차트를 렌더링한다
+ * @param {Array} sts - 학생 배열
+ */
+function renderBarChart(sts) {
+  const ctx = document.getElementById('barChart').getContext('2d');
+  if (S.charts.bar) S.charts.bar.destroy();
+  // only include subjects that have values in current dataset
+  const activeSubs = S.subjects.filter(subj => sts.some(s => s[subj] !== undefined));
+  const avgs = activeSubs.map(subj => parseFloat(avg(sts.map(s => s[subj])).toFixed(2)));
+  const stds = activeSubs.map(subj => parseFloat(std(sts.map(s => s[subj])).toFixed(2)));
+  const maxA = Math.max(...avgs);
+  S.charts.bar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: activeSubs,
+      datasets: [
+        { label: '평균 등급', data: avgs, backgroundColor: avgs.map(v => v === maxA ? 'rgba(239,68,68,0.75)' : 'rgba(26,86,219,0.7)'), borderRadius: 5 },
+        { label: '표준편차', data: stds, backgroundColor: 'rgba(6,182,212,0.5)', borderRadius: 5 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { font: { family: 'Noto Sans KR' } } }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y}` } } },
+      scales: { y: { min: 0, max: 9, title: { display: true, text: '등급', font: { family: 'Noto Sans KR' } } } }
+    }
+  });
+}
+
+/**
+ * 내신 등급 분포 히스토그램을 렌더링한다
+ * @param {Array} sts - 학생 배열
+ */
+function renderHistChart(sts) {
+  const ctx = document.getElementById('histChart').getContext('2d');
+  if (S.charts.hist) S.charts.hist.destroy();
+  const bins = Array(9).fill(0);
+  // bucket by integer part: 1.xx -> 1등급, 2.xx -> 2등급, etc.
+  sts.forEach(s => { const g = Math.floor(s.내신평균); if (g >= 1 && g <= 9) bins[g-1]++; });
+  S.charts.hist = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: bins.map((_, i) => `${i+1}등급`),
+      datasets: [{ label: '학생 수', data: bins, borderRadius: 5,
+        backgroundColor: ['#10b981','#34d399','#6ee7b7','#86efac','#fbbf24','#f97316','#ef4444','#dc2626','#b91c1c'] }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y}명` } } },
+      scales: { y: { ticks: { stepSize: 1 }, title: { display: true, text: '학생 수', font: { family: 'Noto Sans KR' } } } }
+    }
+  });
+}
+
+/**
+ * 위기 학생 섹션을 렌더링한다
+ * @param {Array} sts - 학생 배열
+ */
+function renderCrisis(sts) {
+  const crisis = getCrisis();
+  document.getElementById('crisis-cnt').textContent = crisis.length + '명';
+  document.getElementById('crisis-list').innerHTML = crisis.length === 0
+    ? `<div style="text-align:center;padding:18px;color:#64748b;font-size:13px">🎉 집중 상담이 필요한 학생이 없습니다</div>`
+    : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
+        ${crisis.map(s => `
+          <div onclick="openModal('${s.이름}')" style="
+            padding:14px;border-radius:10px;background:#fff5f5;
+            border:1px solid #fecaca;cursor:pointer;transition:all 0.2s"
+            onmouseover="this.style.transform='translateY(-2px)'"
+            onmouseout="this.style.transform=''">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:700">${s.이름}</span>
+              <span class="badge bd-red">▼ ${s.drop.toFixed(1)} 하락</span>
+            </div>
+            <div style="font-size:12px;color:#64748b">${s.prev.toFixed(2)}등급 → ${s.내신평균.toFixed(2)}등급</div>
+          </div>`).join('')}
+       </div>`;
+}
+
+/**
+ * 학생 테이블을 렌더링한다
+ * @param {Array} sts - 렌더링할 학생 배열
+ */
+function renderTable(sts) {
+  // rebuild header dynamically based on active subjects (no defaults)
+  const activeSubs = S.subjects.filter(subj => sts.some(s => s[subj] !== undefined));
+  const thead = document.querySelector('#st-table thead');
+  thead.innerHTML = `<tr><th>이름</th>${activeSubs.map(s=>`<th>${s}</th>`).join('')}<th>내신평균</th><th>상태</th></tr>`;
+  const crisis = new Set(getCrisis().map(s => s.이름));
+  const classAvgs = {};
+  activeSubs.forEach(subj => { classAvgs[subj] = avg(S.current.map(s => s[subj])); });
+  document.getElementById('st-count').textContent = `총 ${sts.length}명`;
+  const sorted = [...sts].sort((a, b) => a.내신평균 - b.내신평균);
+  document.getElementById('st-tbody').innerHTML = sorted.map(s => {
+    const isCrisis = crisis.has(s.이름);
+    return `<tr class="${isCrisis ? 'crisis' : ''}" onclick="openModal('${s.이름}')">
+      <td style="font-weight:600">${s.이름}</td>
+      ${activeSubs.map(subj => {
+        const v = s[subj]; const ca = classAvgs[subj];
+        const color = v <= ca - 0.5 ? '#10b981' : v >= ca + 0.5 ? '#ef4444' : '#1e293b';
+        return `<td style="color:${color};font-weight:${v<=2?'700':'400'}">${v}</td>`;
+      }).join('')}
+      <td><strong style="font-family:'Space Mono',monospace">${s.내신평균.toFixed(2)}</strong></td>
+      <td>${isCrisis ? '<span class="badge bd-red">⚠ 집중상담</span>' : '<span class="badge bd-green">✓ 정상</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+/**
+ * 검색어로 학생 테이블을 필터링한다
+ */
+function filterTable() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  renderTable(S.current.filter(s => s.이름.includes(q)));
+}
+
+// ========== 모달 ==========
+/**
+ * 학생 상세 레이더 차트 모달을 연다
+ * @param {string} name - 학생 이름
+ */
+function openModal(name) {
+  const s = S.current.find(x => x.이름 === name);
+  if (!s) return;
+  const crisis = getCrisis();
+  // choose only subjects with values for this student
+  const activeSubs = S.subjects.filter(subj => s[subj] !== undefined);
+  document.getElementById('modal-name').textContent = `📊 ${name} 학생 상세 분석`;
+  const classAvgs = activeSubs.map(subj => avg(S.current.map(x => x[subj])));
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  if (S.charts.radar) S.charts.radar.destroy();
+  S.charts.radar = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: activeSubs,
+      datasets: [
+        { label: name, data: activeSubs.map(subj => s[subj]),
+          backgroundColor: 'rgba(26,86,219,0.18)', borderColor: '#1a56db', borderWidth: 2.5, pointBackgroundColor: '#1a56db', pointRadius: 4 },
+        { label: '반 평균', data: classAvgs,
+          backgroundColor: 'rgba(6,182,212,0.08)', borderColor: 'rgba(6,182,212,0.7)', borderWidth: 2, borderDash: [4,4], pointBackgroundColor: '#06b6d4', pointRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { r: { min:0, max:9, ticks:{ stepSize:2, font:{family:'Noto Sans KR'} }, pointLabels:{font:{family:'Noto Sans KR',size:12}} } },
+      plugins: { legend: { labels: { font: { family: 'Noto Sans KR' } } } }
+    }
+  });
+  const classTotal = avg(S.current.map(x => x.내신평균));
+  const rank = [...S.current].sort((a,b) => a.내신평균 - b.내신평균).findIndex(x => x.이름 === name) + 1;
+  const diff = (s.내신평균 - classTotal).toFixed(2);
+  document.getElementById('modal-stats').innerHTML = [
+    { bg:'#f0f9ff', lbl:'내신 평균', val: s.내신평균.toFixed(2)+'등급', color:'#1d4ed8' },
+    { bg:'#f0fdf4', lbl:'반 등수', val: `${rank}/${S.current.length}`, color:'#059669' },
+    { bg:'#fefce8', lbl:'평균 대비', val: (diff > 0 ? '+' : '') + diff, color: diff > 0 ? '#dc2626' : '#059669' },
+  ].map(c => `<div style="background:${c.bg};border-radius:8px;padding:12px;text-align:center">
+    <div style="font-size:10px;color:#64748b;margin-bottom:3px">${c.lbl}</div>
+    <div style="font-size:18px;font-weight:800;color:${c.color};font-family:'Space Mono',monospace">${c.val}</div>
+  </div>`).join('');
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) { if (e.target === document.getElementById('modal')) document.getElementById('modal').classList.remove('open'); }
+
+// ========== 내보내기 ==========
+/**
+ * 대시보드를 PNG로 저장한다
+ */
+async function exportPNG() {
+  toast('📷 이미지 생성 중...');
+  try {
+    const canvas = await html2canvas(document.getElementById('dashboard'), { scale: 1.5, backgroundColor: '#f8faff', useCORS: true });
+    const a = document.createElement('a');
+    a.download = `선생님대시보드_${new Date().toLocaleDateString('ko-KR')}.png`;
+    a.href = canvas.toDataURL('image/png'); a.click();
+    toast('✅ PNG 저장 완료');
+  } catch { toast('❌ 저장 실패', 'error'); }
+}
+
+/**
+ * 대시보드를 PDF로 저장한다
+ */
+async function exportPDF() {
+  toast('📄 PDF 생성 중...');
+  try {
+    const canvas = await html2canvas(document.getElementById('dashboard'), { scale: 1.2, backgroundColor: '#f8faff', useCORS: true });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save(`선생님대시보드_${new Date().toLocaleDateString('ko-KR')}.pdf`);
+    toast('✅ PDF 저장 완료');
+  } catch { toast('❌ 저장 실패', 'error'); }
+}
+
+// ========== UI 유틸 ==========
+function scrollTo(id) { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }
+
+/**
+ * 토스트 알림을 표시한다
+ * @param {string} msg - 메시지
+ * @param {string} type - 'success' | 'error' | 'warning'
+ */
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.style.background = type === 'error' ? '#dc2626' : type === 'warning' ? '#d97706' : '#1e293b';
+  el.textContent = msg;
+  el.style.transform = 'translateY(0)'; el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.transform = 'translateY(80px)'; el.style.opacity = '0'; }, 3000);
+}
+
+// ========== 초기화 ==========
+document.addEventListener('DOMContentLoaded', () => {
+  // clear previous session data every time the page is opened
+  localStorage.removeItem('t_current');
+  localStorage.removeItem('t_past');
+  localStorage.removeItem('t_subjects');
+  localStorage.removeItem('t_students'); // legacy
+  S.current = [];
+  S.past = [];
+  S.subjects = [];
+  // do not load any stored data
+});
+</script>
+</body>
+</html>
